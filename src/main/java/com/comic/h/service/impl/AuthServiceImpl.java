@@ -30,21 +30,21 @@ public class AuthServiceImpl implements AuthService {
 
         @Override
         public RegisterResponse register(RegisterRequest userRequest) {
-                if (userRepository.existsByUserName(userRequest.getUsername())) {
+                if (userRepository.existsByUsername(userRequest.getUsername())) {
                         throw new RuntimeException("Username is already taken!");
                 }
 
                 User userRegister = new User();
-                userRegister.setUserName(userRequest.getUsername());
-                userRegister.setUserPassword(passwordEncoder.encode(userRequest.getPassword()));
-                userRegister.setUserRole(Role.USER);
+                userRegister.setUsername(userRequest.getUsername());
+                userRegister.setPassword(passwordEncoder.encode(userRequest.getPassword()));
+                userRegister.setRole(Role.USER);
 
                 userRepository.save(userRegister);
 
                 return RegisterResponse.builder()
                                 .message("Register successful! Have a good day")
-                                .userName(userRegister.getUserName())
-                                .userRole(userRegister.getUserRole())
+                                .userName(userRegister.getUsername())
+                                .userRole(userRegister.getRole())
                                 .build();
         }
 
@@ -59,15 +59,15 @@ public class AuthServiceImpl implements AuthService {
 
                 String token = jwtTokenProvider.generateToken(authentication);
 
-                User user = userRepository.findByUserName(userRequest.getUsername())
+                User user = userRepository.findByUsername(userRequest.getUsername())
                                 .orElseThrow(() -> new RuntimeException("User not found"));
 
                 return AuthResponse.builder()
-                                .message("Welcome! " + user.getUserName())
+                                .message("Welcome! " + user.getUsername())
                                 .accessToken(token)
                                 .tokenType("Bearer")
-                                .userName(user.getUserName())
-                                .userRole(user.getUserRole())
+                                .username(user.getUsername())
+                                .userRole(user.getRole())
                                 .build();
         }
 }

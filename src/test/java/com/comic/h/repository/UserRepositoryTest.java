@@ -26,46 +26,46 @@ class UserRepositoryTest {
     private UserRepository userRepository;
 
     @Test
-    @DisplayName("findByUserName - Trả về Optional<User> khi user có trong DB")
-    void findByUserName_WhenUserExists_ShouldReturnUser() {
+    @DisplayName("findByUsername - Trả về Optional<User> khi user có trong DB")
+    void findByUsername_WhenUserExists_ShouldReturnUser() {
         User user = new User();
-        user.setUserName("testrepo");
-        user.setUserPassword("pass123");
-        user.setUserRole(Role.USER);
+        user.setUsername("testrepo");
+        user.setPassword("pass123");
+        user.setRole(Role.USER);
         entityManager.persistAndFlush(user);
 
-        Optional<User> found = userRepository.findByUserName("testrepo");
+        Optional<User> found = userRepository.findByUsername("testrepo");
 
         assertTrue(found.isPresent());
-        assertEquals("testrepo", found.get().getUserName());
+        assertEquals("testrepo", found.get().getUsername());
     }
 
     @Test
-    @DisplayName("findByUserName - Trả về Optional.empty() khi user không có trong DB")
-    void findByUserName_WhenUserDoesNotExist_ShouldReturnEmpty() {
-        Optional<User> found = userRepository.findByUserName("nonexistent");
+    @DisplayName("findByUsername - Trả về Optional.empty() khi user không có trong DB")
+    void findByUsername_WhenUserDoesNotExist_ShouldReturnEmpty() {
+        Optional<User> found = userRepository.findByUsername("nonexistent");
 
         assertFalse(found.isPresent());
     }
 
     @Test
-    @DisplayName("existsByUserName - Trả về true khi username tồn tại")
-    void existsByUserName_WhenUserExists_ShouldReturnTrue() {
+    @DisplayName("existsByUsername - Trả về true khi username tồn tại")
+    void existsByUsername_WhenUserExists_ShouldReturnTrue() {
         User user = new User();
-        user.setUserName("existing");
-        user.setUserPassword("pass123");
-        user.setUserRole(Role.USER);
+        user.setUsername("existing");
+        user.setPassword("pass123");
+        user.setRole(Role.USER);
         entityManager.persistAndFlush(user);
 
-        boolean exists = userRepository.existsByUserName("existing");
+        boolean exists = userRepository.existsByUsername("existing");
 
         assertTrue(exists);
     }
 
     @Test
-    @DisplayName("existsByUserName - Trả về false khi username chưa tồn tại")
-    void existsByUserName_WhenUserDoesNotExist_ShouldReturnFalse() {
-        boolean exists = userRepository.existsByUserName("notexist");
+    @DisplayName("existsByUsername - Trả về false khi username chưa tồn tại")
+    void existsByUsername_WhenUserDoesNotExist_ShouldReturnFalse() {
+        boolean exists = userRepository.existsByUsername("notexist");
 
         assertFalse(exists);
     }

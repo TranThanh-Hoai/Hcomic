@@ -90,7 +90,7 @@ class AuthControllerTest {
                                 .message("Welcome! john")
                                 .accessToken("mocked.jwt.token")
                                 .tokenType("Bearer")
-                                .userName("john")
+                                .username("john")
                                 .userRole(Role.USER)
                                 .build();
 

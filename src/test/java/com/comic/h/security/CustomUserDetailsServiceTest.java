@@ -33,11 +33,11 @@ class CustomUserDetailsServiceTest {
     @DisplayName("loadUserByUsername - Tìm thấy User -> Trả về đối tượng UserDetails với quyền ROLE_USER")
     void loadUserByUsername_UserExists_ShouldReturnUserDetails() {
         User mockUser = new User();
-        mockUser.setUserName("john");
-        mockUser.setUserPassword("encodedPass");
-        mockUser.setUserRole(Role.USER);
+        mockUser.setUsername("john");
+        mockUser.setPassword("encodedPass");
+        mockUser.setRole(Role.USER);
 
-        when(userRepository.findByUserName("john")).thenReturn(Optional.of(mockUser));
+        when(userRepository.findByUsername("john")).thenReturn(Optional.of(mockUser));
 
         UserDetails userDetails = customUserDetailsService.loadUserByUsername("john");
 
@@ -51,7 +51,7 @@ class CustomUserDetailsServiceTest {
     @Test
     @DisplayName("loadUserByUsername - Không tìm thấy User -> Ném ra UsernameNotFoundException")
     void loadUserByUsername_UserNotFound_ShouldThrowException() {
-        when(userRepository.findByUserName("unknown")).thenReturn(Optional.empty());
+        when(userRepository.findByUsername("unknown")).thenReturn(Optional.empty());
 
         assertThrows(UsernameNotFoundException.class, () ->
                 customUserDetailsService.loadUserByUsername("unknown")

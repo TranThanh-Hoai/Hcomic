@@ -58,7 +58,7 @@ class AuthServiceImplTest {
         request.setUsername("newuser");
         request.setPassword("password123");
 
-        when(userRepository.existsByUserName("newuser")).thenReturn(false);
+        when(userRepository.existsByUsername("newuser")).thenReturn(false);
         when(passwordEncoder.encode("password123")).thenReturn("encodedPassword");
 
         RegisterResponse response = authService.register(request);
@@ -76,7 +76,7 @@ class AuthServiceImplTest {
         request.setUsername("existinguser");
         request.setPassword("password123");
 
-        when(userRepository.existsByUserName("existinguser")).thenReturn(true);
+        when(userRepository.existsByUsername("existinguser")).thenReturn(true);
 
         RuntimeException exception = assertThrows(RuntimeException.class, () ->
                 authService.register(request)
@@ -94,19 +94,19 @@ class AuthServiceImplTest {
         request.setPassword("password123");
 
         User user = new User();
-        user.setUserName("john");
-        user.setUserRole(Role.USER);
+        user.setUsername("john");
+        user.setRole(Role.USER);
 
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class))).thenReturn(authentication);
         when(jwtTokenProvider.generateToken(authentication)).thenReturn("jwt.token.string");
-        when(userRepository.findByUserName("john")).thenReturn(Optional.of(user));
+        when(userRepository.findByUsername("john")).thenReturn(Optional.of(user));
 
         AuthResponse response = authService.login(request);
 
         assertNotNull(response);
         assertEquals("jwt.token.string", response.getAccessToken());
         assertEquals("Bearer", response.getTokenType());
-        assertEquals("john", response.getUserName());
+        assertEquals("john", response.getUsername());
         assertEquals(Role.USER, response.getUserRole());
     }
 
@@ -119,7 +119,7 @@ class AuthServiceImplTest {
 
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class))).thenReturn(authentication);
         when(jwtTokenProvider.generateToken(authentication)).thenReturn("jwt.token.string");
-        when(userRepository.findByUserName("john")).thenReturn(Optional.empty());
+        when(userRepository.findByUsername("john")).thenReturn(Optional.empty());
 
         RuntimeException exception = assertThrows(RuntimeException.class, () ->
                 authService.login(request)

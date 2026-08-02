@@ -23,24 +23,25 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long userId;
 
-    @Column(name = "user_mail", nullable = true)
-    private String userMail;
+    @Column(name = "email", nullable = true)
+    private String email;
 
     @Column(name = "username", nullable = false, unique = true)
-    private String userName;
+    private String username;
 
-    @Column(name = "user_password", nullable = false)
-    private String userPassword;
+    @Column(name = "password", nullable = false)
+    private String password;
 
+    @Column(name = "role", nullable = false)
     @Enumerated(EnumType.STRING)
-    private Role userRole;
+    private Role role;
 
-    @Column(name = "display_user_name", nullable = true)
-    private String displayUserName;
+    @Column(name = "display_name", nullable = true)
+    private String displayName;
 
-    @Column(name = "user_avatar", nullable = true)
-    private String userAvatar;
+    @Column(name = "avatar", nullable = true)
+    private String avatar;
 
-    @Column(name = "user_bio")
-    private String userBio;
+    @Column(name = "bio")
+    private String bio;
 }

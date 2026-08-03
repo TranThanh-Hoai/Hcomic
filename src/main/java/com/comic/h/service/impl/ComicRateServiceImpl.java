@@ -8,8 +8,9 @@ import com.comic.h.dto.response.ComicRateResponse;
 import com.comic.h.entity.Comic;
 import com.comic.h.entity.ComicRate;
 import com.comic.h.entity.User;
-import com.comic.h.repository.ComicRepository;
+import com.comic.h.exception.ResourceNotFoundException;
 import com.comic.h.repository.ComicRateRepository;
+import com.comic.h.repository.ComicRepository;
 import com.comic.h.repository.UserRepository;
 import com.comic.h.service.ComicRateService;
 
@@ -33,18 +34,11 @@ public class ComicRateServiceImpl implements ComicRateService {
     @Override
     @Transactional
     public ComicRateResponse rateComic(ComicRateRequest request, String username) {
-        if (request == null || request.getComicId() == null) {
-            throw new IllegalArgumentException("Comic ID must not be null");
-        }
-        if (request.getRating() < 1 || request.getRating() > 5) {
-            throw new IllegalArgumentException("Rating score must be between 1 and 5");
-        }
-
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found with username: " + username));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + username));
 
         Comic comic = comicRepository.findById(request.getComicId())
-                .orElseThrow(() -> new RuntimeException("Comic not found with id: " + request.getComicId()));
+                .orElseThrow(() -> new ResourceNotFoundException("Comic not found with id: " + request.getComicId()));
 
         ComicRate rating = ratingRepository.findByUserUsernameAndComicId(username, request.getComicId())
                 .orElseGet(() -> ComicRate.builder()
@@ -57,7 +51,6 @@ public class ComicRateServiceImpl implements ComicRateService {
 
         double avgRating = getAverageRating(comic.getId());
         comic.setAvgRating(avgRating);
-        comicRepository.save(comic);
 
         return mapToResponse(savedRating);
     }
@@ -67,7 +60,7 @@ public class ComicRateServiceImpl implements ComicRateService {
     public ComicRateResponse getUserRatingForComic(Long comicId, String username) {
         ComicRate rating = ratingRepository.findByUserUsernameAndComicId(username, comicId)
                 .orElseThrow(
-                        () -> new RuntimeException("Rating not found for user: " + username + " on comic: " + comicId));
+                        () -> new ResourceNotFoundException("Rating not found for user: " + username + " on comic: " + comicId));
         return mapToResponse(rating);
     }
 

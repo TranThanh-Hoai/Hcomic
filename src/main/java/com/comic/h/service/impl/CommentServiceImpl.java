@@ -10,6 +10,8 @@ import com.comic.h.dto.response.CommentResponse;
 import com.comic.h.entity.Comic;
 import com.comic.h.entity.Comment;
 import com.comic.h.entity.User;
+import com.comic.h.exception.ForbiddenException;
+import com.comic.h.exception.ResourceNotFoundException;
 import com.comic.h.repository.ComicRepository;
 import com.comic.h.repository.CommentRepository;
 import com.comic.h.repository.UserRepository;
@@ -28,10 +30,6 @@ public class CommentServiceImpl implements CommentService {
     @Override
     @Transactional
     public CommentResponse createComment(Long comicId, CommentRequest request, String username) {
-        if (request.getContent() == null || request.getContent().trim().isEmpty()) {
-            throw new IllegalArgumentException("Comment content cannot be empty");
-        }
-
         User user = findUserByUsername(username);
         Comic comic = findComicById(comicId);
 
@@ -48,17 +46,11 @@ public class CommentServiceImpl implements CommentService {
     @Override
     @Transactional
     public CommentResponse updateComment(Long commentId, CommentRequest request, String username) {
-        if (request.getContent() == null || request.getContent().trim().isEmpty()) {
-            throw new IllegalArgumentException("Comment content cannot be empty");
-        }
-
         Comment comment = findCommentById(commentId);
         verifyOwnership(comment, username, "edit");
 
         comment.setContent(request.getContent().trim());
-        Comment updatedComment = commentRepository.save(comment);
-
-        return mapToResponse(updatedComment);
+        return mapToResponse(comment);
     }
 
     @Override
@@ -74,7 +66,7 @@ public class CommentServiceImpl implements CommentService {
     @Transactional(readOnly = true)
     public List<CommentResponse> getCommentsByComicId(Long comicId) {
         if (!comicRepository.existsById(comicId)) {
-            throw new RuntimeException("Comic not found with id: " + comicId);
+            throw new ResourceNotFoundException("Comic not found with id: " + comicId);
         }
 
         List<Comment> comments = commentRepository.findByComicIdOrderByCreatedAtDesc(comicId);
@@ -85,22 +77,22 @@ public class CommentServiceImpl implements CommentService {
 
     private User findUserByUsername(String username) {
         return userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found with username: " + username));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + username));
     }
 
     private Comic findComicById(Long comicId) {
         return comicRepository.findById(comicId)
-                .orElseThrow(() -> new RuntimeException("Comic not found with id: " + comicId));
+                .orElseThrow(() -> new ResourceNotFoundException("Comic not found with id: " + comicId));
     }
 
     private Comment findCommentById(Long commentId) {
         return commentRepository.findById(commentId)
-                .orElseThrow(() -> new RuntimeException("Comment not found with id: " + commentId));
+                .orElseThrow(() -> new ResourceNotFoundException("Comment not found with id: " + commentId));
     }
 
     private void verifyOwnership(Comment comment, String username, String action) {
         if (!comment.getUser().getUsername().equals(username)) {
-            throw new RuntimeException("You can only " + action + " your own comment");
+            throw new ForbiddenException("You can only " + action + " your own comment");
         }
     }
 

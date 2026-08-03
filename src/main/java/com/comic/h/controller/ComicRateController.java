@@ -1,6 +1,7 @@
 package com.comic.h.controller;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -13,6 +14,7 @@ import com.comic.h.dto.request.ComicRateRequest;
 import com.comic.h.dto.response.ComicRateResponse;
 import com.comic.h.service.ComicRateService;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -22,17 +24,11 @@ public class ComicRateController {
 
     private final ComicRateService ratingService;
 
+    @PreAuthorize("isAuthenticated()")
     @PostMapping
-    public ResponseEntity<?> rateComic(@RequestBody ComicRateRequest request, Authentication authentication) {
-        try {
-            if (authentication == null || !authentication.isAuthenticated()) {
-                return ResponseEntity.status(401).body("User must be authenticated to rate");
-            }
-            ComicRateResponse response = ratingService.rateComic(request, authentication.getName());
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    public ResponseEntity<ComicRateResponse> rateComic(@Valid @RequestBody ComicRateRequest request, Authentication authentication) {
+        ComicRateResponse response = ratingService.rateComic(request, authentication.getName());
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/comic/{comicId}/average")
@@ -40,16 +36,10 @@ public class ComicRateController {
         return ResponseEntity.ok(ratingService.getAverageRating(comicId));
     }
 
+    @PreAuthorize("isAuthenticated()")
     @GetMapping("/comic/{comicId}/user")
-    public ResponseEntity<?> getUserRating(@PathVariable Long comicId, Authentication authentication) {
-        try {
-            if (authentication == null || !authentication.isAuthenticated()) {
-                return ResponseEntity.status(401).body("User must be authenticated");
-            }
-            ComicRateResponse response = ratingService.getUserRatingForComic(comicId, authentication.getName());
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    public ResponseEntity<ComicRateResponse> getUserRating(@PathVariable Long comicId, Authentication authentication) {
+        ComicRateResponse response = ratingService.getUserRatingForComic(comicId, authentication.getName());
+        return ResponseEntity.ok(response);
     }
 }

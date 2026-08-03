@@ -20,6 +20,7 @@ import com.comic.h.dto.request.ComicRequest;
 import com.comic.h.dto.response.ComicResponse;
 import com.comic.h.service.ComicService;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -31,15 +32,11 @@ public class ComicController {
 
     @PreAuthorize("hasRole('TRANSLATOR')")
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<?> createComic(
-            @RequestPart("request") ComicRequest request,
+    public ResponseEntity<ComicResponse> createComic(
+            @Valid @RequestPart("request") ComicRequest request,
             @RequestPart("cover") MultipartFile cover) {
-        try {
-            ComicResponse response = comicService.createComic(request, cover);
-            return ResponseEntity.status(HttpStatus.CREATED).body(response);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+        ComicResponse response = comicService.createComic(request, cover);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @GetMapping
@@ -48,47 +45,28 @@ public class ComicController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<?> getComicById(@PathVariable Long id) {
-        try {
-            ComicResponse response = comicService.getComicById(id);
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
-        }
+    public ResponseEntity<ComicResponse> getComicById(@PathVariable Long id) {
+        return ResponseEntity.ok(comicService.getComicById(id));
     }
 
     @GetMapping("/slug/{slug}")
-    public ResponseEntity<?> getComicBySlug(@PathVariable String slug) {
-        try {
-            ComicResponse response = comicService.getComicBySlug(slug);
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
-        }
+    public ResponseEntity<ComicResponse> getComicBySlug(@PathVariable String slug) {
+        return ResponseEntity.ok(comicService.getComicBySlug(slug));
     }
 
     @PreAuthorize("hasRole('TRANSLATOR')")
     @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<?> updateComic(
+    public ResponseEntity<ComicResponse> updateComic(
             @PathVariable Long id,
-            @RequestPart("request") ComicRequest request,
+            @Valid @RequestPart("request") ComicRequest request,
             @RequestPart(value = "cover", required = false) MultipartFile cover) {
-        try {
-            ComicResponse response = comicService.updateComic(id, request, cover);
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+        return ResponseEntity.ok(comicService.updateComic(id, request, cover));
     }
 
     @PreAuthorize("hasRole('TRANSLATOR')")
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteComic(@PathVariable Long id) {
-        try {
-            comicService.deleteComic(id);
-            return ResponseEntity.ok("Comic deleted successfully with id: " + id);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
-        }
+    public ResponseEntity<String> deleteComic(@PathVariable Long id) {
+        comicService.deleteComic(id);
+        return ResponseEntity.ok("Comic deleted successfully with id: " + id);
     }
 }

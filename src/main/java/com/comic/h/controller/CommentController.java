@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -17,6 +18,7 @@ import com.comic.h.dto.request.CommentRequest;
 import com.comic.h.dto.response.CommentResponse;
 import com.comic.h.service.CommentService;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -25,56 +27,33 @@ public class CommentController {
 
     private final CommentService commentService;
 
+    @PreAuthorize("isAuthenticated()")
     @PostMapping("/api/comics/{comicId}/comments")
-    public ResponseEntity<?> createComment(@PathVariable Long comicId,
-                                           @RequestBody CommentRequest request,
+    public ResponseEntity<CommentResponse> createComment(@PathVariable Long comicId,
+                                           @Valid @RequestBody CommentRequest request,
                                            Authentication authentication) {
-        try {
-            if (authentication == null || !authentication.isAuthenticated()) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User must be authenticated to comment");
-            }
-            CommentResponse response = commentService.createComment(comicId, request, authentication.getName());
-            return ResponseEntity.status(HttpStatus.CREATED).body(response);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+        CommentResponse response = commentService.createComment(comicId, request, authentication.getName());
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @GetMapping("/api/comics/{comicId}/comments")
-    public ResponseEntity<?> getCommentsByComicId(@PathVariable Long comicId) {
-        try {
-            List<CommentResponse> comments = commentService.getCommentsByComicId(comicId);
-            return ResponseEntity.ok(comments);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    public ResponseEntity<List<CommentResponse>> getCommentsByComicId(@PathVariable Long comicId) {
+        return ResponseEntity.ok(commentService.getCommentsByComicId(comicId));
     }
 
+    @PreAuthorize("isAuthenticated()")
     @PutMapping("/api/comments/{commentId}")
-    public ResponseEntity<?> updateComment(@PathVariable Long commentId,
-                                           @RequestBody CommentRequest request,
+    public ResponseEntity<CommentResponse> updateComment(@PathVariable Long commentId,
+                                           @Valid @RequestBody CommentRequest request,
                                            Authentication authentication) {
-        try {
-            if (authentication == null || !authentication.isAuthenticated()) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User must be authenticated to update comment");
-            }
-            CommentResponse response = commentService.updateComment(commentId, request, authentication.getName());
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+        CommentResponse response = commentService.updateComment(commentId, request, authentication.getName());
+        return ResponseEntity.ok(response);
     }
 
+    @PreAuthorize("isAuthenticated()")
     @DeleteMapping("/api/comments/{commentId}")
-    public ResponseEntity<?> deleteComment(@PathVariable Long commentId, Authentication authentication) {
-        try {
-            if (authentication == null || !authentication.isAuthenticated()) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User must be authenticated to delete comment");
-            }
-            commentService.deleteComment(commentId, authentication.getName());
-            return ResponseEntity.ok("Comment deleted successfully");
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    public ResponseEntity<String> deleteComment(@PathVariable Long commentId, Authentication authentication) {
+        commentService.deleteComment(commentId, authentication.getName());
+        return ResponseEntity.ok("Comment deleted successfully");
     }
 }

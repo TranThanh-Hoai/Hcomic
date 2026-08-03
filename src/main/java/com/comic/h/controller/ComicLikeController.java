@@ -1,6 +1,7 @@
 package com.comic.h.controller;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -20,29 +21,17 @@ public class ComicLikeController {
 
     private final ComicLikeService comicLikeService;
 
+    @PreAuthorize("isAuthenticated()")
     @PostMapping("/toggle-like")
-    public ResponseEntity<?> toggleLike(@PathVariable Long comicId, Authentication authentication) {
-        try {
-            if (authentication == null || !authentication.isAuthenticated()) {
-                return ResponseEntity.status(401).body("User must be authenticated to toggle like on a comic");
-            }
-            ComicLikeResponse response = comicLikeService.toggleLike(comicId, authentication.getName());
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    public ResponseEntity<ComicLikeResponse> toggleLike(@PathVariable Long comicId, Authentication authentication) {
+        ComicLikeResponse response = comicLikeService.toggleLike(comicId, authentication.getName());
+        return ResponseEntity.ok(response);
     }
 
+    @PreAuthorize("isAuthenticated()")
     @GetMapping("/like/status")
-    public ResponseEntity<?> getLikeStatus(@PathVariable Long comicId, Authentication authentication) {
-        try {
-            if (authentication == null || !authentication.isAuthenticated()) {
-                return ResponseEntity.status(401).body("User must be authenticated");
-            }
-            ComicLikeResponse response = comicLikeService.getLikeStatus(comicId, authentication.getName());
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    public ResponseEntity<ComicLikeResponse> getLikeStatus(@PathVariable Long comicId, Authentication authentication) {
+        ComicLikeResponse response = comicLikeService.getLikeStatus(comicId, authentication.getName());
+        return ResponseEntity.ok(response);
     }
 }

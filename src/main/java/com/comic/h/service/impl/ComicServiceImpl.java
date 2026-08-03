@@ -1,7 +1,6 @@
 package com.comic.h.service.impl;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
@@ -14,6 +13,7 @@ import com.comic.h.dto.request.ComicRequest;
 import com.comic.h.dto.response.ComicResponse;
 import com.comic.h.entity.Comic;
 import com.comic.h.enums.ComicStatus;
+import com.comic.h.exception.ResourceNotFoundException;
 import com.comic.h.repository.ComicRepository;
 import com.comic.h.service.ComicService;
 import com.comic.h.util.SlugUtils;
@@ -26,17 +26,13 @@ import lombok.RequiredArgsConstructor;
 public class ComicServiceImpl implements ComicService {
 
     @Value("${app.upload.comic-dir}")
-    private String UPLOAD_DIR;
+    private String uploadDir;
 
     private final ComicRepository comicRepository;
 
     @Override
     @Transactional
     public ComicResponse createComic(ComicRequest request, MultipartFile cover) {
-        if (request.getTitle() == null || request.getTitle().trim().isEmpty()) {
-            throw new IllegalArgumentException("Comic title cannot be empty");
-        }
-
         String slug = SlugUtils.toSlug(request.getTitle());
 
         if (comicRepository.existsBySlug(slug)) {
@@ -48,14 +44,7 @@ public class ComicServiceImpl implements ComicService {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String uploader = authentication.getName();
 
-        String coverImagePath = null;
-        if (cover != null && !cover.isEmpty()) {
-            try {
-                coverImagePath = UploadUtils.saveFile(cover, UPLOAD_DIR);
-            } catch (Exception e) {
-                throw new RuntimeException("Failed to upload comic cover image: " + e.getMessage(), e);
-            }
-        }
+        String coverImagePath = saveCoverImage(cover);
 
         Comic comic = Comic.builder()
                 .title(request.getTitle())
@@ -77,14 +66,14 @@ public class ComicServiceImpl implements ComicService {
         return comicRepository.findAll()
                 .stream()
                 .map(this::mapToResponse)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
     @Transactional(readOnly = true)
     public ComicResponse getComicById(Long id) {
         Comic comic = comicRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Comic not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Comic not found with id: " + id));
         return mapToResponse(comic);
     }
 
@@ -92,7 +81,7 @@ public class ComicServiceImpl implements ComicService {
     @Transactional(readOnly = true)
     public ComicResponse getComicBySlug(String slug) {
         Comic comic = comicRepository.findBySlug(slug)
-                .orElseThrow(() -> new RuntimeException("Comic not found with slug: " + slug));
+                .orElseThrow(() -> new ResourceNotFoundException("Comic not found with slug: " + slug));
         return mapToResponse(comic);
     }
 
@@ -100,7 +89,7 @@ public class ComicServiceImpl implements ComicService {
     @Transactional
     public ComicResponse updateComic(Long id, ComicRequest request, MultipartFile cover) {
         Comic comic = comicRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Comic not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Comic not found with id: " + id));
 
         if (request.getTitle() != null && !request.getTitle().trim().isEmpty()) {
             comic.setTitle(request.getTitle());
@@ -127,25 +116,42 @@ public class ComicServiceImpl implements ComicService {
         }
 
         if (cover != null && !cover.isEmpty()) {
-            try {
-                String savedPath = UploadUtils.saveFile(cover, UPLOAD_DIR);
+            String savedPath = saveCoverImage(cover);
+            if (savedPath != null) {
                 comic.setCoverImage(savedPath);
-            } catch (Exception e) {
-                throw new RuntimeException("Failed to upload comic cover image: " + e.getMessage(), e);
             }
         }
 
-        Comic updatedComic = comicRepository.save(comic);
-        return mapToResponse(updatedComic);
+        return mapToResponse(comic);
     }
 
     @Override
     @Transactional
     public void deleteComic(Long id) {
-        if (!comicRepository.existsById(id)) {
-            throw new RuntimeException("Comic not found with id: " + id);
+        Comic comic = comicRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Comic not found with id: " + id));
+        comicRepository.delete(comic);
+    }
+
+    @Transactional
+    public long increaseView(long id) {
+        Comic comic = comicRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Comic not found with id: " + id));
+        comic.setViewCount(comic.getViewCount() + 1);
+        return comic.getViewCount();
+    }
+
+    private String saveCoverImage(MultipartFile cover) {
+        if (cover == null || cover.isEmpty()) {
+            return null;
         }
-        comicRepository.deleteById(id);
+        try {
+            return UploadUtils.saveFile(cover, uploadDir);
+        } catch (IllegalArgumentException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to upload comic cover image: " + e.getMessage(), e);
+        }
     }
 
     private ComicResponse mapToResponse(Comic comic) {
@@ -164,14 +170,5 @@ public class ComicServiceImpl implements ComicService {
                 .createdAt(comic.getCreatedAt())
                 .updatedAt(comic.getUpdatedAt())
                 .build();
-    }
-
-    @Transactional
-    public long increaseView(long id) {
-        Comic comic = comicRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Comic not found with id: " + id));
-        comic.setViewCount(comic.getViewCount() + 1);
-        comicRepository.save(comic);
-        return comic.getViewCount();
     }
 }

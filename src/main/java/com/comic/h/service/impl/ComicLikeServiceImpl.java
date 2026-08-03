@@ -7,6 +7,7 @@ import com.comic.h.dto.response.ComicLikeResponse;
 import com.comic.h.entity.Comic;
 import com.comic.h.entity.ComicLike;
 import com.comic.h.entity.User;
+import com.comic.h.exception.ResourceNotFoundException;
 import com.comic.h.repository.ComicLikeRepository;
 import com.comic.h.repository.ComicRepository;
 import com.comic.h.repository.UserRepository;
@@ -25,7 +26,6 @@ public class ComicLikeServiceImpl implements ComicLikeService {
     @Override
     @Transactional
     public ComicLikeResponse toggleLike(Long comicId, String username) {
-
         User user = findUserByUsername(username);
         Comic comic = findComicById(comicId);
 
@@ -59,18 +59,17 @@ public class ComicLikeServiceImpl implements ComicLikeService {
     private long updateComicLikeCount(Comic comic) {
         long count = comicLikeRepository.countByComicId(comic.getId());
         comic.setLikeCount(count);
-        comicRepository.save(comic);
         return count;
     }
 
     private User findUserByUsername(String username) {
         return userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found with username: " + username));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + username));
     }
 
     private Comic findComicById(Long comicId) {
         return comicRepository.findById(comicId)
-                .orElseThrow(() -> new RuntimeException("Comic not found with id: " + comicId));
+                .orElseThrow(() -> new ResourceNotFoundException("Comic not found with id: " + comicId));
     }
 
     private ComicLikeResponse buildResponse(boolean isLiked, long likeCount) {

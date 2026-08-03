@@ -5,6 +5,8 @@ import java.time.LocalDateTime;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import com.comic.h.enums.ComicStatus;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -39,6 +41,26 @@ public class Comic {
     @Column(name = "slug", unique = true)
     private String slug;
 
+    @Column(name = "description")
+    private String description;
+
+    @Column(name = "author")
+    private String author;
+
+    @Column(name = "uploader")
+    private String uploader;
+
+    @Builder.Default
+    @Column(name = "view_count", columnDefinition = "BIGINT DEFAULT 0")
+    private Long viewCount = 0L;
+
+    @Builder.Default
+    @Column(name = "like_count", columnDefinition = "BIGINT DEFAULT 0")
+    private Long likeCount = 0L;
+
+    @Builder.Default
+    @Column(name = "rating", columnDefinition = "TINYINT")
+    private Double avgRating = 0.0;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status")

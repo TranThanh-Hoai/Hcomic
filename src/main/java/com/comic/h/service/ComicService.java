@@ -19,3 +19,4 @@ public interface ComicService {
 
     void deleteComic(Long id);
 }
+

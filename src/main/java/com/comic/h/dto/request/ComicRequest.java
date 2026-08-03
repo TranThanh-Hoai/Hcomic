@@ -1,6 +1,6 @@
 package com.comic.h.dto.request;
 
-import com.comic.h.entity.ComicStatus;
+import com.comic.h.enums.ComicStatus;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -16,6 +16,7 @@ import lombok.Setter;
 public class ComicRequest {
 
     private String title;
+    private String description;
+    private String author;
     private ComicStatus status;
 }
-

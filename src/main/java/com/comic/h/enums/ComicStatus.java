@@ -1,4 +1,4 @@
-package com.comic.h.entity;
+package com.comic.h.enums;
 
 public enum ComicStatus {
     ONGOING,

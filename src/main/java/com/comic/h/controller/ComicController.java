@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -26,6 +27,7 @@ public class ComicController {
 
     private final ComicService comicService;
 
+    @PreAuthorize("hasRole('TRANSLATOR')")
     @PostMapping
     public ResponseEntity<?> createComic(@RequestBody ComicRequest request) {
         try {
@@ -61,6 +63,7 @@ public class ComicController {
         }
     }
 
+    @PreAuthorize("hasRole('TRANSLATOR')")
     @PutMapping("/{id}")
     public ResponseEntity<?> updateComic(@PathVariable Long id, @RequestBody ComicRequest request) {
         try {
@@ -71,6 +74,7 @@ public class ComicController {
         }
     }
 
+    @PreAuthorize("hasRole('TRANSLATOR')")
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteComic(@PathVariable Long id) {
         try {
@@ -81,3 +85,4 @@ public class ComicController {
         }
     }
 }
+

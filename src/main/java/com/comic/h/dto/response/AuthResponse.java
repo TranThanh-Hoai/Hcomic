@@ -1,6 +1,6 @@
 package com.comic.h.dto.response;
 
-import com.comic.h.entity.Role;
+import com.comic.h.enums.Role;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

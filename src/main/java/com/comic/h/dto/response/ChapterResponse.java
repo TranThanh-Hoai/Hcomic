@@ -4,22 +4,24 @@ import java.time.LocalDateTime;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-@Data
-@Builder
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class CommentResponse {
+@Builder
+public class ChapterResponse {
 
     private Long id;
     private Long comicId;
-    private Long chapterId;
-    private Long userId;
-    private String userDisplayName;
-    private String userAvatar;
-    private String content;
+    private Double chapterNumber;
+    private String title;
+    private String slug;
+    private Long viewCount;
+    private Integer imageCount;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

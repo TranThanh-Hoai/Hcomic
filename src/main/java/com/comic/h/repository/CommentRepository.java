@@ -9,4 +9,8 @@ import com.comic.h.entity.Comment;
 public interface CommentRepository extends JpaRepository<Comment, Long> {
 
     List<Comment> findByComicIdOrderByCreatedAtDesc(Long comicId);
+
+    List<Comment> findByComicIdAndChapterIsNullOrderByCreatedAtDesc(Long comicId);
+
+    List<Comment> findByChapterIdOrderByCreatedAtDesc(Long chapterId);
 }

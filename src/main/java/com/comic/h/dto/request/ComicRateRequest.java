@@ -1,7 +1,7 @@
 package com.comic.h.dto.request;
 
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -18,7 +18,7 @@ public class ComicRateRequest {
     private Long comicId;
 
     @NotNull(message = "Rating score must not be null")
-    @Min(value = 1, message = "Rating score must be between 1 and 5")
-    @Max(value = 5, message = "Rating score must be between 1 and 5")
+    @DecimalMin(value = "1.0", message = "Rating score must be between 1 and 5")
+    @DecimalMax(value = "5.0", message = "Rating score must be between 1 and 5")
     private Double rating;
 }

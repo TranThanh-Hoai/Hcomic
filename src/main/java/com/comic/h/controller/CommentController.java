@@ -42,6 +42,20 @@ public class CommentController {
     }
 
     @PreAuthorize("isAuthenticated()")
+    @PostMapping("/api/chapters/{chapterId}/comments")
+    public ResponseEntity<CommentResponse> createChapterComment(@PathVariable Long chapterId,
+                                                  @Valid @RequestBody CommentRequest request,
+                                                  Authentication authentication) {
+        CommentResponse response = commentService.createChapterComment(chapterId, request, authentication.getName());
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @GetMapping("/api/chapters/{chapterId}/comments")
+    public ResponseEntity<List<CommentResponse>> getCommentsByChapterId(@PathVariable Long chapterId) {
+        return ResponseEntity.ok(commentService.getCommentsByChapterId(chapterId));
+    }
+
+    @PreAuthorize("isAuthenticated()")
     @PutMapping("/api/comments/{commentId}")
     public ResponseEntity<CommentResponse> updateComment(@PathVariable Long commentId,
                                            @Valid @RequestBody CommentRequest request,

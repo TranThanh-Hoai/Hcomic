@@ -11,8 +11,10 @@ import com.comic.h.dto.request.LoginRequest;
 import com.comic.h.dto.request.RegisterRequest;
 import com.comic.h.dto.response.AuthResponse;
 import com.comic.h.dto.response.RegisterResponse;
-import com.comic.h.entity.Role;
 import com.comic.h.entity.User;
+import com.comic.h.enums.Role;
+import com.comic.h.exception.BadRequestException;
+import com.comic.h.exception.ResourceNotFoundException;
 import com.comic.h.repository.UserRepository;
 import com.comic.h.security.JwtTokenProvider;
 import com.comic.h.service.AuthService;
@@ -31,7 +33,7 @@ public class AuthServiceImpl implements AuthService {
         @Override
         public RegisterResponse register(RegisterRequest userRequest) {
                 if (userRepository.existsByUsername(userRequest.getUsername())) {
-                        throw new RuntimeException("Username is already taken!");
+                        throw new BadRequestException("Username is already taken!");
                 }
 
                 User userRegister = new User();
@@ -60,7 +62,7 @@ public class AuthServiceImpl implements AuthService {
                 String token = jwtTokenProvider.generateToken(authentication);
 
                 User user = userRepository.findByUsername(userRequest.getUsername())
-                                .orElseThrow(() -> new RuntimeException("User not found"));
+                                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
                 return AuthResponse.builder()
                                 .message("Welcome! " + user.getUsername())

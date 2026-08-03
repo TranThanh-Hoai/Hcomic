@@ -9,8 +9,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.comic.h.dto.request.LoginRequest;
 import com.comic.h.dto.request.RegisterRequest;
+import com.comic.h.dto.response.AuthResponse;
+import com.comic.h.dto.response.RegisterResponse;
 import com.comic.h.service.AuthService;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -21,21 +24,13 @@ public class AuthController {
     private final AuthService userService;
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody RegisterRequest userRequest) {
-        try {
-            return ResponseEntity.ok(userService.register(userRequest));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    public ResponseEntity<RegisterResponse> register(@Valid @RequestBody RegisterRequest userRequest) {
+        return ResponseEntity.ok(userService.register(userRequest));
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequest userRequest) {
-        try {
-            return ResponseEntity.ok(userService.login(userRequest));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest userRequest) {
+        return ResponseEntity.ok(userService.login(userRequest));
     }
 
     @GetMapping("/hello")

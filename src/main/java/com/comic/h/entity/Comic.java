@@ -50,6 +50,9 @@ public class Comic {
     @Column(name = "uploader")
     private String uploader;
 
+    @Column(name = "cover_image")
+    private String coverImage;
+
     @Builder.Default
     @Column(name = "view_count", columnDefinition = "BIGINT DEFAULT 0")
     private Long viewCount = 0L;

@@ -23,6 +23,7 @@ public class ComicResponse {
     private String description;
     private String author;
     private String uploader;
+    private String coverImage;
     private Long viewCount;
     private Long likeCount;
     private Double rating;

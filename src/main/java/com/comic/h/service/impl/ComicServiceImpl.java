@@ -3,10 +3,12 @@ package com.comic.h.service.impl;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.comic.h.dto.request.ComicRequest;
 import com.comic.h.dto.response.ComicResponse;
@@ -15,6 +17,7 @@ import com.comic.h.enums.ComicStatus;
 import com.comic.h.repository.ComicRepository;
 import com.comic.h.service.ComicService;
 import com.comic.h.util.SlugUtils;
+import com.comic.h.util.UploadUtils;
 
 import lombok.RequiredArgsConstructor;
 
@@ -22,11 +25,14 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class ComicServiceImpl implements ComicService {
 
+    @Value("${app.upload.comic-dir}")
+    private String UPLOAD_DIR;
+
     private final ComicRepository comicRepository;
 
     @Override
     @Transactional
-    public ComicResponse createComic(ComicRequest request) {
+    public ComicResponse createComic(ComicRequest request, MultipartFile cover) {
         if (request.getTitle() == null || request.getTitle().trim().isEmpty()) {
             throw new IllegalArgumentException("Comic title cannot be empty");
         }
@@ -42,12 +48,22 @@ public class ComicServiceImpl implements ComicService {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String uploader = authentication.getName();
 
+        String coverImagePath = null;
+        if (cover != null && !cover.isEmpty()) {
+            try {
+                coverImagePath = UploadUtils.saveFile(cover, UPLOAD_DIR);
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to upload comic cover image: " + e.getMessage(), e);
+            }
+        }
+
         Comic comic = Comic.builder()
                 .title(request.getTitle())
                 .slug(slug)
                 .description(request.getDescription())
                 .author(request.getAuthor())
                 .uploader(uploader)
+                .coverImage(coverImagePath)
                 .status(status)
                 .build();
 
@@ -82,7 +98,7 @@ public class ComicServiceImpl implements ComicService {
 
     @Override
     @Transactional
-    public ComicResponse updateComic(Long id, ComicRequest request) {
+    public ComicResponse updateComic(Long id, ComicRequest request, MultipartFile cover) {
         Comic comic = comicRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Comic not found with id: " + id));
 
@@ -110,6 +126,15 @@ public class ComicServiceImpl implements ComicService {
             comic.setStatus(request.getStatus());
         }
 
+        if (cover != null && !cover.isEmpty()) {
+            try {
+                String savedPath = UploadUtils.saveFile(cover, UPLOAD_DIR);
+                comic.setCoverImage(savedPath);
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to upload comic cover image: " + e.getMessage(), e);
+            }
+        }
+
         Comic updatedComic = comicRepository.save(comic);
         return mapToResponse(updatedComic);
     }
@@ -131,6 +156,7 @@ public class ComicServiceImpl implements ComicService {
                 .description(comic.getDescription())
                 .author(comic.getAuthor())
                 .uploader(comic.getUploader())
+                .coverImage(comic.getCoverImage())
                 .viewCount(comic.getViewCount())
                 .likeCount(comic.getLikeCount())
                 .rating(comic.getAvgRating())
@@ -147,14 +173,5 @@ public class ComicServiceImpl implements ComicService {
         comic.setViewCount(comic.getViewCount() + 1);
         comicRepository.save(comic);
         return comic.getViewCount();
-    }
-
-    @Transactional
-    public long increaseLike(long id) {
-        Comic comic = comicRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Comic not found with id: " + id));
-        comic.setLikeCount(comic.getLikeCount() + 1);
-        comicRepository.save(comic);
-        return comic.getLikeCount();
     }
 }

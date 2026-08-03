@@ -8,7 +8,7 @@ import org.springframework.data.repository.query.Param;
 
 import com.comic.h.entity.ComicRate;
 
-public interface ComicRateRepository extends JpaRepository<ComicRate, Integer> {
+public interface ComicRateRepository extends JpaRepository<ComicRate, Long> {
 
     @Query("SELECT AVG(r.rating) FROM ComicRate r WHERE r.comic.id = :comicId")
     Double getAverageRating(@Param("comicId") Long comicId);

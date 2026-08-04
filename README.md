@@ -6,7 +6,7 @@
 ![Docker](https://img.shields.io/badge/Docker-blue)
 ![JWT](https://img.shields.io/badge/JWT-Security-red)
 
-> Hệ thống Backend RESTful API cho ứng dụng đọc truyện tranh trực tuyến, phát triển bằng **Spring Boot 3** và **Java 21**, tích hợp bảo mật **JWT & RBAC**, tự động tối ưu hóa hình ảnh **WebP**, đóng gói **Docker** và tài liệu **Swagger UI**.
+> Hệ thống Backend RESTful API cho ứng dụng đọc truyện tranh trực tuyến, phát triển bằng **Spring Boot 4** và **Java 21**, tích hợp bảo mật **JWT & RBAC**, tự động tối ưu hóa hình ảnh **WebP**, đóng gói **Docker** và tài liệu **Swagger UI**.
 
 ---
 

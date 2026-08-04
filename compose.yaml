@@ -1,0 +1,32 @@
+services:
+  server:
+    image: tranhoai/hcomic-api:1.0
+    build:
+      context: .
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:postgresql://db:5432/hcomic_db
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      JWT_SECRET: ${JWT_SECRET:-K9mP2xQ7nLs4Vz8RwH3tY6cFd1BaU5Je}
+  db:
+    image: postgres:17
+    restart: always
+    environment:
+      POSTGRES_DB: hcomic_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d hcomic_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres-data:

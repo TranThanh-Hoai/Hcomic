@@ -43,10 +43,13 @@ public class ChapterServiceTest {
     public void setUp() {
         chapterService = new ChapterServiceImpl(chapterRepository, comicRepository);
 
+        com.comic.h.entity.User uploader = new com.comic.h.entity.User();
+        uploader.setUsername("translator1");
+
         comicOwnedByTranslator1 = Comic.builder()
                 .id(1L)
                 .title("Translator 1 Comic")
-                .uploader("translator1")
+                .uploader(uploader)
                 .build();
     }
 
@@ -120,5 +123,29 @@ public class ChapterServiceTest {
         chapterService.deleteChapter(10L);
 
         verify(chapterRepository).delete(chapter);
+    }
+
+    @Test
+    public void testUserCannotModifyComicChapter_ThrowsForbidden() {
+        UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
+                "normalUser", "password",
+                Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"))
+        );
+        SecurityContextHolder.getContext().setAuthentication(auth);
+
+        Chapter chapter = Chapter.builder()
+                .id(10L)
+                .chapterNumber(1.0)
+                .comic(comicOwnedByTranslator1)
+                .build();
+
+        when(chapterRepository.findById(10L)).thenReturn(Optional.of(chapter));
+
+        ForbiddenException ex = assertThrows(ForbiddenException.class, () -> {
+            chapterService.deleteChapter(10L);
+        });
+
+        assertEquals("You do not have permission to modify chapters for this comic", ex.getMessage());
+        verify(chapterRepository, never()).delete(any());
     }
 }

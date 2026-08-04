@@ -278,7 +278,7 @@ public class ChapterServiceImpl implements ChapterService {
         }
 
         String currentUsername = authentication.getName();
-        if (comic.getUploader() == null || !comic.getUploader().equalsIgnoreCase(currentUsername)) {
+        if (comic.getUploader() == null || comic.getUploader().getUsername() == null || !comic.getUploader().getUsername().equalsIgnoreCase(currentUsername)) {
             throw new ForbiddenException("You do not have permission to modify chapters for this comic");
         }
     }

@@ -39,8 +39,8 @@ import lombok.Setter;
         @Index(name = "idx_chapter_comic_slug", columnList = "comic_id, slug")
     },
     uniqueConstraints = {
-        @UniqueConstraint(columnNames = {"comic_id", "chapter_number"}),
-        @UniqueConstraint(columnNames = {"comic_id", "slug"})
+        @UniqueConstraint(name = "uk_chapter_comic_number", columnNames = {"comic_id", "chapter_number"}),
+        @UniqueConstraint(name = "uk_chapter_comic_slug", columnNames = {"comic_id", "slug"})
     }
 )
 public class Chapter {
@@ -64,7 +64,7 @@ public class Chapter {
     private String slug;
 
     @Builder.Default
-    @Column(name = "view_count", columnDefinition = "BIGINT DEFAULT 0")
+    @Column(name = "view_count")
     private Long viewCount = 0L;
 
     @CreationTimestamp

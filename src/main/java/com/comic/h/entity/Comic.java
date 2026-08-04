@@ -44,7 +44,7 @@ public class Comic {
     @Column(name = "slug", unique = true)
     private String slug;
 
-    @Column(name = "description")
+    @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 
     @Column(name = "author")
@@ -59,15 +59,15 @@ public class Comic {
 
 
     @Builder.Default
-    @Column(name = "view_count", columnDefinition = "BIGINT DEFAULT 0")
+    @Column(name = "view_count")
     private Long viewCount = 0L;
 
     @Builder.Default
-    @Column(name = "like_count", columnDefinition = "BIGINT DEFAULT 0")
+    @Column(name = "like_count")
     private Long likeCount = 0L;
 
     @Builder.Default
-    @Column(name = "rating", columnDefinition = "TINYINT")
+    @Column(name = "rating")
     private Double avgRating = 0.0;
 
     @Enumerated(EnumType.STRING)

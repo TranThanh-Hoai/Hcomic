@@ -28,7 +28,7 @@ public class User {
     @Id
     @Column(name = "user_id")
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private long userId;
+    private Long userId;
 
     @Column(name = "email", nullable = true)
     private String email;
@@ -49,7 +49,7 @@ public class User {
     @Column(name = "avatar", nullable = true)
     private String avatar;
 
-    @Column(name = "bio")
+    @Column(name = "bio", columnDefinition = "TEXT")
     private String bio;
 
     @CreationTimestamp

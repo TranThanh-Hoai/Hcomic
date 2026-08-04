@@ -19,11 +19,11 @@ public class ComicLike {
     @Column(name = "like_id")
     private Long id;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "comic_id", nullable = false)
     private Comic comic;
 }

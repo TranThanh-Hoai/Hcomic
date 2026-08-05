@@ -68,6 +68,14 @@ docker compose up --build -d
 
 ---
 
+## ⚡Test Account (Tài Khoản Test)
+
+| Tài khoản | Role | Mật khẩu |
+| :--- | :--- | :--- |
+| user | USER | 123456 |
+| translator | TRANSLATOR | 123456 |
+---
+
 ## 📖 API Documentation (Swagger)
 
 Truy cập giao diện Swagger UI khi ứng dụng đang chạy:

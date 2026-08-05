@@ -1,5 +1,8 @@
 package com.comic.h.service.impl;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -30,8 +33,8 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class ComicServiceImpl implements ComicService {
 
-    @Value("${app.upload.comic-dir}")
-    private String uploadDir;
+    @Value("${app.upload.comic-dir:upload/comic}")
+    private String uploadDir = "upload/comic";
 
     private final ComicRepository comicRepository;
     private final UserRepository userRepository;
@@ -53,7 +56,7 @@ public class ComicServiceImpl implements ComicService {
         User uploader = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + username));
 
-        String coverImagePath = saveCoverImage(cover);
+        String coverImagePath = saveCoverImage(cover, slug);
 
         Comic comic = Comic.builder()
                 .title(request.getTitle())
@@ -102,6 +105,7 @@ public class ComicServiceImpl implements ComicService {
 
         verifyComicOwnership(comic);
 
+        String oldSlug = comic.getSlug();
         if (request.getTitle() != null && !request.getTitle().trim().isEmpty()) {
             comic.setTitle(request.getTitle());
 
@@ -109,6 +113,20 @@ public class ComicServiceImpl implements ComicService {
 
             if (!newSlug.equals(comic.getSlug()) && comicRepository.existsBySlug(newSlug)) {
                 newSlug = newSlug + "-" + System.currentTimeMillis();
+            }
+
+            if (!newSlug.equals(oldSlug)) {
+                Path oldDir = Paths.get(uploadDir, oldSlug);
+                Path newDir = Paths.get(uploadDir, newSlug);
+                if (Files.exists(oldDir)) {
+                    try {
+                        Files.move(oldDir, newDir);
+                        if (comic.getCoverImage() != null) {
+                            comic.setCoverImage(comic.getCoverImage().replace(oldSlug, newSlug));
+                        }
+                    } catch (Exception ignored) {
+                    }
+                }
             }
 
             comic.setSlug(newSlug);
@@ -129,12 +147,13 @@ public class ComicServiceImpl implements ComicService {
         String newCoverPath = null;
         if (cover != null && !cover.isEmpty()) {
             String oldCoverPath = comic.getCoverImage();
-            newCoverPath = saveCoverImage(cover);
+            newCoverPath = saveCoverImage(cover, comic.getSlug());
             if (newCoverPath != null) {
-                scheduleFileCleanupOnCommit(
-                        oldCoverPath != null ? List.of(oldCoverPath) : null,
-                        List.of(newCoverPath)
-                );
+                List<String> filesToDeleteOnCommit = (oldCoverPath != null && !oldCoverPath.equalsIgnoreCase(newCoverPath))
+                        ? List.of(oldCoverPath)
+                        : null;
+                List<String> filesToDeleteOnRollback = List.of(newCoverPath);
+                scheduleFileCleanupOnCommit(filesToDeleteOnCommit, filesToDeleteOnRollback);
                 comic.setCoverImage(newCoverPath);
             }
         }
@@ -161,6 +180,9 @@ public class ComicServiceImpl implements ComicService {
         if (comic.getCoverImage() != null) {
             scheduleFileCleanupOnCommit(List.of(comic.getCoverImage()), null);
         }
+
+        Path comicDir = Paths.get(uploadDir, comic.getSlug());
+        scheduleDirectoryCleanupOnCommit(comicDir);
 
         comicRepository.delete(comic);
     }
@@ -235,12 +257,29 @@ public class ComicServiceImpl implements ComicService {
         }
     }
 
-    private String saveCoverImage(MultipartFile cover) {
+    private void scheduleDirectoryCleanupOnCommit(Path dirPath) {
+        if (TransactionSynchronizationManager.isActualTransactionActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCompletion(int status) {
+                    if (status == TransactionSynchronization.STATUS_COMMITTED) {
+                        UploadUtils.deleteDirectory(dirPath);
+                    }
+                }
+            });
+        } else {
+            UploadUtils.deleteDirectory(dirPath);
+        }
+    }
+
+    private String saveCoverImage(MultipartFile cover, String slug) {
         if (cover == null || cover.isEmpty()) {
             return null;
         }
         try {
-            return UploadUtils.saveFile(cover, uploadDir);
+            Path comicDir = Paths.get(uploadDir, slug);
+            String coverFileName = slug + "-cover.webp";
+            return UploadUtils.saveFile(cover, comicDir, coverFileName);
         } catch (IllegalArgumentException e) {
             throw e;
         } catch (Exception e) {
@@ -267,5 +306,3 @@ public class ComicServiceImpl implements ComicService {
                 .build();
     }
 }
-
-

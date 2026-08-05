@@ -1,10 +1,13 @@
 services:
   server:
-    image: tranhoai/hcomic-api:1.0
+    restart: unless-stopped
+    image: tranhoai/hcomic-api:latest
     build:
       context: .
     ports:
-      - "8080:8080"
+      - "127.0.0.1:8080:8080"
+
+    mem_limit: 1g
     depends_on:
       db:
         condition: service_healthy
@@ -13,9 +16,13 @@ services:
       DB_USERNAME: postgres
       DB_PASSWORD: postgres
       JWT_SECRET: ${JWT_SECRET:-K9mP2xQ7nLs4Vz8RwH3tY6cFd1BaU5Je}
+
+      JAVA_TOOL_OPTIONS: "-XX:InitialRAMPercentage=25 -XX:MaxRAMPercentage=60"
   db:
     image: postgres:17
-    restart: always
+    restart: unless-stopped
+
+    mem_limit: 512m
     environment:
       POSTGRES_DB: hcomic_db
       POSTGRES_USER: postgres

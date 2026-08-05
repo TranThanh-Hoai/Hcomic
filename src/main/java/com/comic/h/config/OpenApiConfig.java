@@ -25,7 +25,15 @@ import org.springframework.context.annotation.Configuration;
         +
         "2. Click vào nút **Authorize** màu xanh ở góc trên bên phải.\n" +
         "3. Dán trực tiếp chuỗi token vừa lấy được vào ô Value (không cần thêm tiền tố 'Bearer ').\n" +
-        "4. Nhấp nút **Authorize** -> **Close** để thực thi các API bảo vệ."), security = @SecurityRequirement(name = "bearerAuth"))
-@SecurityScheme(name = "bearerAuth", type = SecuritySchemeType.HTTP, scheme = "bearer", bearerFormat = "JWT", description = "Dán chuỗi accessToken thu được từ API /api/auth/login vào đây để xác thực.")
-public class OpenApiConfig {
+        "4. Nhấp nút **Authorize** -> **Close** để thực thi các API bảo vệ."),
+
+        security = @SecurityRequirement(name = "bearerAuth"))
+
+        @SecurityScheme(name = "bearerAuth",
+        type = SecuritySchemeType.HTTP,
+        scheme = "bearer",
+        bearerFormat = "JWT",
+        description = "Dán chuỗi accessToken thu được từ API /api/auth/login vào đây để xác thực.")
+
+        public class OpenApiConfig {
 }

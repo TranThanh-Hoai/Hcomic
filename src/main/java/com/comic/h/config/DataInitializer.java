@@ -21,8 +21,8 @@ public class DataInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
-        createAccountIfNotFound("user", Role.USER, "password");
-        createAccountIfNotFound("translator", Role.TRANSLATOR, "password");
+        createAccountIfNotFound("user", Role.USER, "123456");
+        createAccountIfNotFound("translator", Role.TRANSLATOR, "123456");
     }
 
     private void createAccountIfNotFound(String username, Role role, String rawPassword) {

@@ -71,7 +71,7 @@ docker compose up --build -d
 ## ⚡Test Account (Tài Khoản Test)
 
 | Tài khoản | Role | Mật Khẩu |
-| :--- | :--- |
+| :--- | :--- | | :--- |
 | user | USER | 123456 |
 | translator | TRANSLATOR | 123456 |
 ---

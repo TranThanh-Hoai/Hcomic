@@ -25,6 +25,20 @@ public class UploadUtils {
     }
 
     public static String saveFile(MultipartFile file, String uploadDir) throws IOException {
+        Path dirPath = Paths.get(uploadDir);
+        String originalFilename = file != null ? file.getOriginalFilename() : null;
+        String baseName = (originalFilename != null && originalFilename.contains("."))
+                ? originalFilename.substring(0, originalFilename.lastIndexOf("."))
+                : "image";
+        String cleanSlugName = SlugUtils.toSlug(baseName);
+        if (cleanSlugName.isEmpty()) {
+            cleanSlugName = "image";
+        }
+        String webpFileName = UUID.randomUUID().toString() + "_" + cleanSlugName + ".webp";
+        return saveFile(file, dirPath, webpFileName);
+    }
+
+    public static String saveFile(MultipartFile file, Path dirPath, String fileName) throws IOException {
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("File upload cannot be empty");
         }
@@ -48,19 +62,11 @@ public class UploadUtils {
             throw new IllegalArgumentException("Could not read image content or unsupported image file");
         }
 
-        String baseName = originalFilename.substring(0, originalFilename.lastIndexOf("."));
-        String cleanSlugName = SlugUtils.toSlug(baseName);
-        if (cleanSlugName.isEmpty()) {
-            cleanSlugName = "image";
-        }
-        String webpFileName = UUID.randomUUID().toString() + "_" + cleanSlugName + ".webp";
-
-        Path dirPath = Paths.get(uploadDir);
         if (!Files.exists(dirPath)) {
             Files.createDirectories(dirPath);
         }
 
-        Path filePath = dirPath.resolve(webpFileName);
+        Path filePath = dirPath.resolve(fileName);
         File outputFile = filePath.toFile();
 
         boolean written = ImageIO.write(inputImage, "webp", outputFile);
@@ -72,15 +78,21 @@ public class UploadUtils {
     }
 
     public static List<String> saveFiles(List<MultipartFile> files, String uploadDir) throws IOException {
+        return saveFiles(files, Paths.get(uploadDir), "image");
+    }
+
+    public static List<String> saveFiles(List<MultipartFile> files, Path dirPath, String filenamePrefix) throws IOException {
         if (files == null || files.isEmpty()) {
             throw new IllegalArgumentException("File list cannot be empty");
         }
 
         List<String> savedPaths = new ArrayList<>();
         try {
+            int sequence = 1;
             for (MultipartFile file : files) {
                 if (file != null && !file.isEmpty()) {
-                    String savedPath = saveFile(file, uploadDir);
+                    String fileName = String.format("%s-img-%03d.webp", filenamePrefix, sequence++);
+                    String savedPath = saveFile(file, dirPath, fileName);
                     savedPaths.add(savedPath);
                 }
             }
@@ -118,5 +130,26 @@ public class UploadUtils {
                 deleteFile(filePath);
             }
         }
+    }
+
+    public static boolean deleteDirectory(Path dirPath) {
+        if (dirPath == null || !Files.exists(dirPath)) {
+            return false;
+        }
+        try (var stream = Files.walk(dirPath)) {
+            stream.sorted(java.util.Comparator.reverseOrder())
+                    .map(Path::toFile)
+                    .forEach(File::delete);
+            return true;
+        } catch (IOException e) {
+            return false;
+        }
+    }
+
+    public static boolean deleteDirectory(String dirPathStr) {
+        if (dirPathStr == null || dirPathStr.trim().isEmpty()) {
+            return false;
+        }
+        return deleteDirectory(Paths.get(dirPathStr));
     }
 }

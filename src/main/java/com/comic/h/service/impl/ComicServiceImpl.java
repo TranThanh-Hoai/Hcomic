@@ -120,6 +120,7 @@ public class ComicServiceImpl implements ComicService {
                 Path newDir = Paths.get(uploadDir, newSlug);
                 if (Files.exists(oldDir)) {
                     try {
+                        UploadUtils.createDirectoryIfNotExists(newDir.getParent());
                         Files.move(oldDir, newDir);
                         if (comic.getCoverImage() != null) {
                             comic.setCoverImage(comic.getCoverImage().replace(oldSlug, newSlug));

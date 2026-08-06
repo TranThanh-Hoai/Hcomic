@@ -84,4 +84,17 @@ public class UploadUtilsTest {
         assertTrue(deleted);
         assertFalse(Files.exists(comicDir));
     }
+
+    @Test
+    public void testCreateDirectoryIfNotExists() throws IOException {
+        Path nonExistentDir = tempDir.resolve("auto-created-dir").resolve("sub-dir");
+        assertFalse(Files.exists(nonExistentDir));
+
+        UploadUtils.createDirectoryIfNotExists(nonExistentDir);
+        assertTrue(Files.exists(nonExistentDir));
+
+        String strPath = tempDir.resolve("auto-created-str-dir").toString();
+        UploadUtils.createDirectoryIfNotExists(strPath);
+        assertTrue(Files.exists(Path.of(strPath)));
+    }
 }

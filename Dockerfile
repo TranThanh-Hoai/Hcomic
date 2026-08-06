@@ -61,11 +61,13 @@ RUN adduser \
     --shell "/usr/sbin/nologin" \
     --no-create-home \
     --uid "${UID}" \
-    appuser
+    appuser \
+    && mkdir -p /app/upload \
+    && chown -R appuser:appuser /app
 
 USER appuser
 
-COPY --from=package /build/target/app.jar app.jar
+COPY --chown=appuser:appuser --from=package /build/target/app.jar app.jar
 
 EXPOSE 8080
 

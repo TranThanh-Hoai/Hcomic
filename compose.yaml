@@ -18,6 +18,8 @@ services:
       JWT_SECRET: ${JWT_SECRET:-K9mP2xQ7nLs4Vz8RwH3tY6cFd1BaU5Je}
 
       JAVA_TOOL_OPTIONS: "-XX:InitialRAMPercentage=25 -XX:MaxRAMPercentage=60"
+    volumes:
+      - ./upload:/app/upload
   db:
     image: postgres:17
     restart: unless-stopped

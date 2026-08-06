@@ -38,6 +38,18 @@ public class UploadUtils {
         return saveFile(file, dirPath, webpFileName);
     }
 
+    public static void createDirectoryIfNotExists(Path dirPath) throws IOException {
+        if (dirPath != null && !Files.exists(dirPath)) {
+            Files.createDirectories(dirPath);
+        }
+    }
+
+    public static void createDirectoryIfNotExists(String dirPathStr) throws IOException {
+        if (dirPathStr != null && !dirPathStr.trim().isEmpty()) {
+            createDirectoryIfNotExists(Paths.get(dirPathStr));
+        }
+    }
+
     public static String saveFile(MultipartFile file, Path dirPath, String fileName) throws IOException {
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("File upload cannot be empty");
@@ -62,9 +74,7 @@ public class UploadUtils {
             throw new IllegalArgumentException("Could not read image content or unsupported image file");
         }
 
-        if (!Files.exists(dirPath)) {
-            Files.createDirectories(dirPath);
-        }
+        createDirectoryIfNotExists(dirPath);
 
         Path filePath = dirPath.resolve(fileName);
         File outputFile = filePath.toFile();

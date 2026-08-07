@@ -17,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import static org.mockito.ArgumentMatchers.any;
 import org.mockito.Mock;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -33,7 +34,9 @@ import com.comic.h.entity.User;
 import com.comic.h.exception.ForbiddenException;
 import com.comic.h.repository.ChapterImageRepository;
 import com.comic.h.repository.ChapterRepository;
+import com.comic.h.security.ComicSecurityEvaluator;
 import com.comic.h.service.impl.ChapterImageServiceImpl;
+import com.comic.h.util.ImageProcessor;
 
 @ExtendWith(MockitoExtension.class)
 public class ChapterImageServiceTest {
@@ -44,6 +47,14 @@ public class ChapterImageServiceTest {
     @Mock
     private ChapterImageRepository chapterImageRepository;
 
+    @Mock
+    private FileStorageService fileStorageService;
+
+    @Mock
+    private ImageProcessor imageProcessor;
+
+    private ComicSecurityEvaluator comicSecurityEvaluator = new ComicSecurityEvaluator();
+
     private ChapterImageServiceImpl chapterImageService;
 
     private Comic comicOwnedByTranslator;
@@ -52,7 +63,7 @@ public class ChapterImageServiceTest {
 
     @BeforeEach
     public void setUp() throws IOException {
-        chapterImageService = new ChapterImageServiceImpl(chapterRepository, chapterImageRepository);
+        chapterImageService = new ChapterImageServiceImpl(chapterRepository, chapterImageRepository, fileStorageService, imageProcessor, comicSecurityEvaluator);
 
         User uploader = new User();
         uploader.setUsername("translator1");
@@ -75,6 +86,9 @@ public class ChapterImageServiceTest {
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         ImageIO.write(img, "png", os);
         validImageFile = new MockMultipartFile("image", "page1.png", "image/png", os.toByteArray());
+
+        lenient().when(imageProcessor.convertToWebp(any())).thenReturn(new byte[]{1, 2, 3});
+        lenient().when(fileStorageService.saveFile(any(), any(), any())).thenReturn("upload/comic/translator-comic/translator-comic-chapter-1/page-001.webp");
     }
 
     private void authenticateUser(String username, String role) {

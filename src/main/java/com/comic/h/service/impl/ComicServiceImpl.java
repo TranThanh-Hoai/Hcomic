@@ -1,6 +1,5 @@
 package com.comic.h.service.impl;
 
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
@@ -10,7 +9,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -23,9 +21,11 @@ import com.comic.h.exception.ForbiddenException;
 import com.comic.h.exception.ResourceNotFoundException;
 import com.comic.h.repository.ComicRepository;
 import com.comic.h.repository.UserRepository;
+import com.comic.h.security.ComicSecurityEvaluator;
 import com.comic.h.service.ComicService;
+import com.comic.h.service.FileStorageService;
+import com.comic.h.util.ImageProcessor;
 import com.comic.h.util.SlugUtils;
-import com.comic.h.util.UploadUtils;
 
 import lombok.RequiredArgsConstructor;
 
@@ -38,6 +38,9 @@ public class ComicServiceImpl implements ComicService {
 
     private final ComicRepository comicRepository;
     private final UserRepository userRepository;
+    private final FileStorageService fileStorageService;
+    private final ImageProcessor imageProcessor;
+    private final ComicSecurityEvaluator comicSecurityEvaluator;
 
     @Override
     @Transactional
@@ -103,7 +106,7 @@ public class ComicServiceImpl implements ComicService {
         Comic comic = comicRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Comic not found with id: " + id));
 
-        verifyComicOwnership(comic);
+        comicSecurityEvaluator.verifyOwnership(comic);
 
         String oldSlug = comic.getSlug();
         if (request.getTitle() != null && !request.getTitle().trim().isEmpty()) {
@@ -118,15 +121,9 @@ public class ComicServiceImpl implements ComicService {
             if (!newSlug.equals(oldSlug)) {
                 Path oldDir = Paths.get(uploadDir, oldSlug);
                 Path newDir = Paths.get(uploadDir, newSlug);
-                if (Files.exists(oldDir)) {
-                    try {
-                        UploadUtils.createDirectoryIfNotExists(newDir.getParent());
-                        Files.move(oldDir, newDir);
-                        if (comic.getCoverImage() != null) {
-                            comic.setCoverImage(comic.getCoverImage().replace(oldSlug, newSlug));
-                        }
-                    } catch (Exception ignored) {
-                    }
+                boolean moved = fileStorageService.moveDirectory(oldDir.toString(), newDir.toString());
+                if (moved && comic.getCoverImage() != null) {
+                    comic.setCoverImage(comic.getCoverImage().replace(oldSlug, newSlug));
                 }
             }
 
@@ -154,7 +151,7 @@ public class ComicServiceImpl implements ComicService {
                         ? List.of(oldCoverPath)
                         : null;
                 List<String> filesToDeleteOnRollback = List.of(newCoverPath);
-                scheduleFileCleanupOnCommit(filesToDeleteOnCommit, filesToDeleteOnRollback);
+                fileStorageService.scheduleFileCleanupOnCommit(filesToDeleteOnCommit, filesToDeleteOnRollback);
                 comic.setCoverImage(newCoverPath);
             }
         }
@@ -164,7 +161,7 @@ public class ComicServiceImpl implements ComicService {
             return mapToResponse(savedComic);
         } catch (RuntimeException e) {
             if (!TransactionSynchronizationManager.isActualTransactionActive() && newCoverPath != null) {
-                UploadUtils.deleteFile(newCoverPath);
+                fileStorageService.deleteFile(newCoverPath);
             }
             throw e;
         }
@@ -176,14 +173,14 @@ public class ComicServiceImpl implements ComicService {
         Comic comic = comicRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Comic not found with id: " + id));
 
-        verifyComicOwnership(comic);
+        comicSecurityEvaluator.verifyOwnership(comic);
 
         if (comic.getCoverImage() != null) {
-            scheduleFileCleanupOnCommit(List.of(comic.getCoverImage()), null);
+            fileStorageService.scheduleFileCleanupOnCommit(List.of(comic.getCoverImage()), null);
         }
 
         Path comicDir = Paths.get(uploadDir, comic.getSlug());
-        scheduleDirectoryCleanupOnCommit(comicDir);
+        fileStorageService.scheduleDirectoryCleanupOnCommit(comicDir.toString());
 
         comicRepository.delete(comic);
     }
@@ -218,64 +215,6 @@ public class ComicServiceImpl implements ComicService {
         return comic.getViewCount() != null ? comic.getViewCount() : 0L;
     }
 
-
-    private void verifyComicOwnership(Comic comic) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated()) {
-            throw new ForbiddenException("User is not authenticated");
-        }
-
-        boolean isAdmin = authentication.getAuthorities().stream()
-                .anyMatch(grantedAuthority -> grantedAuthority.getAuthority().equals("ROLE_ADMIN"));
-
-        if (isAdmin) {
-            return;
-        }
-
-        String currentUsername = authentication.getName();
-        if (comic.getUploader() == null || comic.getUploader().getUsername() == null || !comic.getUploader().getUsername().equalsIgnoreCase(currentUsername)) {
-            throw new ForbiddenException("You do not have permission to modify this comic");
-        }
-    }
-
-    private void scheduleFileCleanupOnCommit(List<String> filesToDeleteOnCommit, List<String> filesToDeleteOnRollback) {
-        if (TransactionSynchronizationManager.isActualTransactionActive()) {
-            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                @Override
-                public void afterCompletion(int status) {
-                    if (status == TransactionSynchronization.STATUS_COMMITTED) {
-                        if (filesToDeleteOnCommit != null && !filesToDeleteOnCommit.isEmpty()) {
-                            UploadUtils.deleteFiles(filesToDeleteOnCommit);
-                        }
-                    } else {
-                        if (filesToDeleteOnRollback != null && !filesToDeleteOnRollback.isEmpty()) {
-                            UploadUtils.deleteFiles(filesToDeleteOnRollback);
-                        }
-                    }
-                }
-            });
-        } else {
-            if (filesToDeleteOnCommit != null && !filesToDeleteOnCommit.isEmpty()) {
-                UploadUtils.deleteFiles(filesToDeleteOnCommit);
-            }
-        }
-    }
-
-    private void scheduleDirectoryCleanupOnCommit(Path dirPath) {
-        if (TransactionSynchronizationManager.isActualTransactionActive()) {
-            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                @Override
-                public void afterCompletion(int status) {
-                    if (status == TransactionSynchronization.STATUS_COMMITTED) {
-                        UploadUtils.deleteDirectory(dirPath);
-                    }
-                }
-            });
-        } else {
-            UploadUtils.deleteDirectory(dirPath);
-        }
-    }
-
     private String saveCoverImage(MultipartFile cover, String slug) {
         if (cover == null || cover.isEmpty()) {
             return null;
@@ -283,7 +222,8 @@ public class ComicServiceImpl implements ComicService {
         try {
             Path comicDir = Paths.get(uploadDir, slug);
             String coverFileName = slug + "-cover.webp";
-            return UploadUtils.saveFile(cover, comicDir, coverFileName);
+            byte[] webpBytes = imageProcessor.convertToWebp(cover);
+            return fileStorageService.saveFile(webpBytes, comicDir.toString(), coverFileName);
         } catch (IllegalArgumentException e) {
             throw e;
         } catch (Exception e) {

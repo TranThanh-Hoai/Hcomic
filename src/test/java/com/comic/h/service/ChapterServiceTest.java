@@ -18,12 +18,12 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 
-import com.comic.h.dto.request.ChapterRequest;
 import com.comic.h.entity.Chapter;
 import com.comic.h.entity.Comic;
 import com.comic.h.exception.ForbiddenException;
 import com.comic.h.repository.ChapterRepository;
 import com.comic.h.repository.ComicRepository;
+import com.comic.h.security.ComicSecurityEvaluator;
 import com.comic.h.service.impl.ChapterServiceImpl;
 
 @ExtendWith(MockitoExtension.class)
@@ -35,13 +35,18 @@ public class ChapterServiceTest {
     @Mock
     private ComicRepository comicRepository;
 
+    @Mock
+    private FileStorageService fileStorageService;
+
+    private ComicSecurityEvaluator comicSecurityEvaluator = new ComicSecurityEvaluator();
+
     private ChapterServiceImpl chapterService;
 
     private Comic comicOwnedByTranslator1;
 
     @BeforeEach
     public void setUp() {
-        chapterService = new ChapterServiceImpl(chapterRepository, comicRepository);
+        chapterService = new ChapterServiceImpl(chapterRepository, comicRepository, fileStorageService, comicSecurityEvaluator);
 
         com.comic.h.entity.User uploader = new com.comic.h.entity.User();
         uploader.setUsername("translator1");
@@ -98,7 +103,7 @@ public class ChapterServiceTest {
             chapterService.deleteChapter(10L);
         });
 
-        assertEquals("You do not have permission to modify chapters for this comic", ex.getMessage());
+        assertEquals("You do not have permission to perform action on this comic", ex.getMessage());
         verify(chapterRepository, never()).delete(any());
     }
 
@@ -145,7 +150,7 @@ public class ChapterServiceTest {
             chapterService.deleteChapter(10L);
         });
 
-        assertEquals("You do not have permission to modify chapters for this comic", ex.getMessage());
+        assertEquals("You do not have permission to perform action on this comic", ex.getMessage());
         verify(chapterRepository, never()).delete(any());
     }
 
@@ -170,4 +175,3 @@ public class ChapterServiceTest {
         verify(comicRepository).incrementViewCount(1L);
     }
 }
-

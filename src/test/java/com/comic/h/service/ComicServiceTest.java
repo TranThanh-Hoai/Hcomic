@@ -27,7 +27,9 @@ import com.comic.h.entity.User;
 import com.comic.h.exception.ForbiddenException;
 import com.comic.h.repository.ComicRepository;
 import com.comic.h.repository.UserRepository;
+import com.comic.h.security.ComicSecurityEvaluator;
 import com.comic.h.service.impl.ComicServiceImpl;
+import com.comic.h.util.ImageProcessor;
 
 @ExtendWith(MockitoExtension.class)
 public class ComicServiceTest {
@@ -38,13 +40,21 @@ public class ComicServiceTest {
     @Mock
     private UserRepository userRepository;
 
+    @Mock
+    private FileStorageService fileStorageService;
+
+    @Mock
+    private ImageProcessor imageProcessor;
+
+    private ComicSecurityEvaluator comicSecurityEvaluator = new ComicSecurityEvaluator();
+
     private ComicServiceImpl comicService;
 
     private Comic comicOwnedByTranslator1;
 
     @BeforeEach
     public void setUp() {
-        comicService = new ComicServiceImpl(comicRepository, userRepository);
+        comicService = new ComicServiceImpl(comicRepository, userRepository, fileStorageService, imageProcessor, comicSecurityEvaluator);
 
         User uploader = new User();
         uploader.setUsername("translator1");
@@ -126,7 +136,7 @@ public class ComicServiceTest {
             comicService.updateComic(1L, request, null);
         });
 
-        assertEquals("You do not have permission to modify this comic", ex.getMessage());
+        assertEquals("You do not have permission to perform action on this comic", ex.getMessage());
         verify(comicRepository, never()).save(any());
     }
 
@@ -159,7 +169,7 @@ public class ComicServiceTest {
             comicService.deleteComic(1L);
         });
 
-        assertEquals("You do not have permission to modify this comic", ex.getMessage());
+        assertEquals("You do not have permission to perform action on this comic", ex.getMessage());
         verify(comicRepository, never()).delete(any());
     }
 
@@ -195,8 +205,7 @@ public class ComicServiceTest {
             comicService.updateComic(1L, request, null);
         });
 
-        assertEquals("You do not have permission to modify this comic", ex.getMessage());
+        assertEquals("You do not have permission to perform action on this comic", ex.getMessage());
         verify(comicRepository, never()).save(any());
     }
 }
-

@@ -2,8 +2,6 @@ package com.comic.h.service;
 
 import java.util.List;
 
-import org.springframework.web.multipart.MultipartFile;
-
 import com.comic.h.dto.request.ChapterRequest;
 import com.comic.h.dto.response.ChapterDetailResponse;
 import com.comic.h.dto.response.ChapterResponse;

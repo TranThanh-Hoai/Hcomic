@@ -49,25 +49,6 @@ public class UploadUtilsTest {
         assertEquals("solo-leveling-cover.webp", savedPath.getFileName().toString());
     }
 
-    @Test
-    public void testSaveFiles_CustomDirAndPrefixSequence() throws IOException {
-        Path chapterDir = tempDir.resolve("solo-leveling").resolve("solo-leveling-chapter-1-12345");
-        List<MultipartFile> files = List.of(mockFile1, mockFile2);
-
-        List<String> savedPaths = UploadUtils.saveFiles(files, chapterDir, "solo-leveling");
-
-        assertNotNull(savedPaths);
-        assertEquals(2, savedPaths.size());
-
-        Path path1 = Path.of(savedPaths.get(0));
-        Path path2 = Path.of(savedPaths.get(1));
-
-        assertTrue(Files.exists(path1));
-        assertTrue(Files.exists(path2));
-
-        assertEquals("solo-leveling-img-001.webp", path1.getFileName().toString());
-        assertEquals("solo-leveling-img-002.webp", path2.getFileName().toString());
-    }
 
     @Test
     public void testDeleteDirectory_RecursiveDeletion() throws IOException {

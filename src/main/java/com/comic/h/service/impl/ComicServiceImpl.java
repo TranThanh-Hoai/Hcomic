@@ -210,11 +210,14 @@ public class ComicServiceImpl implements ComicService {
 
     @Transactional
     public long increaseView(long id) {
-        Comic comic = comicRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Comic not found with id: " + id));
-        comic.setViewCount(comic.getViewCount() + 1);
-        return comic.getViewCount();
+        if (!comicRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Comic not found with id: " + id);
+        }
+        comicRepository.incrementViewCount(id);
+        Comic comic = comicRepository.findById(id).orElseThrow();
+        return comic.getViewCount() != null ? comic.getViewCount() : 0L;
     }
+
 
     private void verifyComicOwnership(Comic comic) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();

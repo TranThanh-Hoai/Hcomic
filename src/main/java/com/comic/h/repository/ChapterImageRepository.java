@@ -1,0 +1,26 @@
+package com.comic.h.repository;
+
+import java.util.List;
+import java.util.Optional;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+
+import com.comic.h.entity.ChapterImage;
+
+@Repository
+public interface ChapterImageRepository extends JpaRepository<ChapterImage, Long> {
+
+    Optional<ChapterImage> findByChapterIdAndPageNumber(Long chapterId, Integer pageNumber);
+
+    List<ChapterImage> findByChapterIdOrderByPageNumberAsc(Long chapterId);
+
+    void deleteByChapterIdAndPageNumber(Long chapterId, Integer pageNumber);
+
+    @Modifying
+    @Query("DELETE FROM ChapterImage ci WHERE ci.chapter.id = :chapterId")
+    long deleteByChapterId(@Param("chapterId") Long chapterId);
+}

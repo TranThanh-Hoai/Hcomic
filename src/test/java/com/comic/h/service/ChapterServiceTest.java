@@ -148,4 +148,26 @@ public class ChapterServiceTest {
         assertEquals("You do not have permission to modify chapters for this comic", ex.getMessage());
         verify(chapterRepository, never()).delete(any());
     }
+
+    @Test
+    public void testGetChapterDetailBySlug_IncrementsChapterAndComicViewCount() {
+        Chapter chapter = Chapter.builder()
+                .id(100L)
+                .chapterNumber(1.0)
+                .slug("chuong-1")
+                .viewCount(5L)
+                .comic(comicOwnedByTranslator1)
+                .images(Collections.emptyList())
+                .build();
+
+        when(chapterRepository.findByComicSlugAndSlug("translator-1-comic", "chuong-1"))
+                .thenReturn(Optional.of(chapter));
+
+        var response = chapterService.getChapterDetailBySlug("translator-1-comic", "chuong-1");
+
+        assertEquals(100L, response.getId());
+        verify(chapterRepository).incrementViewCount(100L);
+        verify(comicRepository).incrementViewCount(1L);
+    }
 }
+

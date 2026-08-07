@@ -87,40 +87,6 @@ public class UploadUtils {
         return filePath.toString();
     }
 
-    public static List<String> saveFiles(List<MultipartFile> files, String uploadDir) throws IOException {
-        return saveFiles(files, Paths.get(uploadDir), "image");
-    }
-
-    public static List<String> saveFiles(List<MultipartFile> files, Path dirPath, String filenamePrefix) throws IOException {
-        if (files == null || files.isEmpty()) {
-            throw new IllegalArgumentException("File list cannot be empty");
-        }
-
-        List<String> savedPaths = new ArrayList<>();
-        try {
-            int sequence = 1;
-            for (MultipartFile file : files) {
-                if (file != null && !file.isEmpty()) {
-                    String fileName = String.format("%s-img-%03d.webp", filenamePrefix, sequence++);
-                    String savedPath = saveFile(file, dirPath, fileName);
-                    savedPaths.add(savedPath);
-                }
-            }
-            if (savedPaths.isEmpty()) {
-                throw new IllegalArgumentException("No valid files were uploaded");
-            }
-            return savedPaths;
-        } catch (Exception e) {
-            deleteFiles(savedPaths);
-            if (e instanceof IOException) {
-                throw (IOException) e;
-            } else if (e instanceof IllegalArgumentException) {
-                throw (IllegalArgumentException) e;
-            } else {
-                throw new IOException("Failed to save files: " + e.getMessage(), e);
-            }
-        }
-    }
 
     public static boolean deleteFile(String filePath) {
         if (filePath == null || filePath.trim().isEmpty()) {

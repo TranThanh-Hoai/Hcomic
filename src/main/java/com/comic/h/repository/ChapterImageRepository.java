@@ -21,4 +21,8 @@ public interface ChapterImageRepository extends JpaRepository<ChapterImage, Long
     @Modifying
     @Query("DELETE FROM ChapterImage ci WHERE ci.chapter.id = :chapterId")
     long deleteByChapterId(@Param("chapterId") Long chapterId);
+
+    @Modifying
+    @Query("UPDATE ChapterImage ci SET ci.imagePath = REPLACE(ci.imagePath, :oldPrefix, :newPrefix) WHERE ci.chapter.id IN (SELECT c.id FROM Chapter c WHERE c.comic.id = :comicId)")
+    int updateImagePathsForComicSlugChange(@Param("comicId") Long comicId, @Param("oldPrefix") String oldPrefix, @Param("newPrefix") String newPrefix);
 }

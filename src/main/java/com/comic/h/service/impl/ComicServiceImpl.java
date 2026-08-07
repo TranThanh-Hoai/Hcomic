@@ -19,6 +19,7 @@ import com.comic.h.entity.User;
 import com.comic.h.enums.ComicStatus;
 import com.comic.h.exception.ForbiddenException;
 import com.comic.h.exception.ResourceNotFoundException;
+import com.comic.h.repository.ChapterImageRepository;
 import com.comic.h.repository.ComicRepository;
 import com.comic.h.repository.UserRepository;
 import com.comic.h.security.ComicSecurityEvaluator;
@@ -37,6 +38,7 @@ public class ComicServiceImpl implements ComicService {
     private String uploadDir = "upload/comic";
 
     private final ComicRepository comicRepository;
+    private final ChapterImageRepository chapterImageRepository;
     private final UserRepository userRepository;
     private final FileStorageService fileStorageService;
     private final ImageProcessor imageProcessor;
@@ -122,8 +124,12 @@ public class ComicServiceImpl implements ComicService {
                 Path oldDir = Paths.get(uploadDir, oldSlug);
                 Path newDir = Paths.get(uploadDir, newSlug);
                 boolean moved = fileStorageService.moveDirectory(oldDir.toString(), newDir.toString());
-                if (moved && comic.getCoverImage() != null) {
-                    comic.setCoverImage(comic.getCoverImage().replace(oldSlug, newSlug));
+                if (moved) {
+                    if (comic.getCoverImage() != null) {
+                        comic.setCoverImage(comic.getCoverImage().replace(oldSlug, newSlug));
+                    }
+                    chapterImageRepository.updateImagePathsForComicSlugChange(comic.getId(), "/" + oldSlug + "/", "/" + newSlug + "/");
+                    chapterImageRepository.updateImagePathsForComicSlugChange(comic.getId(), oldSlug + "/", newSlug + "/");
                 }
             }
 
@@ -223,7 +229,7 @@ public class ComicServiceImpl implements ComicService {
             Path comicDir = Paths.get(uploadDir, slug);
             String coverFileName = slug + "-cover.webp";
             byte[] webpBytes = imageProcessor.convertToWebp(cover);
-            return fileStorageService.saveFile(webpBytes, comicDir.toString(), coverFileName);
+            return fileStorageService.saveFile(webpBytes, comicDir.toString(), coverFileName).replace('\\', '/');
         } catch (IllegalArgumentException e) {
             throw e;
         } catch (Exception e) {

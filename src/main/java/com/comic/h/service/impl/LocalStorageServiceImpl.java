@@ -37,7 +37,7 @@ public class LocalStorageServiceImpl implements FileStorageService {
 
             Path filePath = dirPath.resolve(fileName);
             Files.write(filePath, fileData);
-            return filePath.toString();
+            return filePath.toString().replace('\\', '/');
         } catch (IOException e) {
             log.error("Failed to save file to path: {}/{}", targetDirStr, fileName, e);
             throw new RuntimeException("Failed to save file: " + e.getMessage(), e);

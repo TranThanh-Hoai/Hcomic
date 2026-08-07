@@ -131,13 +131,9 @@ public class ChapterServiceImpl implements ChapterService {
                 .orElseThrow(() -> new ResourceNotFoundException("Chapter not found with slug: " + chapterSlug + " for comic: " + comicSlug));
 
         chapterRepository.incrementViewCount(chapter.getId());
-        chapter.setViewCount(chapter.getViewCount() + 1);
 
         Comic comic = chapter.getComic();
         comicRepository.incrementViewCount(comic.getId());
-        if (comic.getViewCount() != null) {
-            comic.setViewCount(comic.getViewCount() + 1);
-        }
 
         Optional<Chapter> prevChapterOpt = chapterRepository
                 .findFirstByComicIdAndChapterNumberLessThanOrderByChapterNumberDesc(comic.getId(), chapter.getChapterNumber());
@@ -152,6 +148,8 @@ public class ChapterServiceImpl implements ChapterService {
                         .build())
                 .toList();
 
+        long updatedViewCount = (chapter.getViewCount() != null ? chapter.getViewCount() : 0L) + 1;
+
         return ChapterDetailResponse.builder()
                 .id(chapter.getId())
                 .comicId(comic.getId())
@@ -160,7 +158,7 @@ public class ChapterServiceImpl implements ChapterService {
                 .chapterNumber(chapter.getChapterNumber())
                 .title(chapter.getTitle())
                 .slug(chapter.getSlug())
-                .viewCount(chapter.getViewCount())
+                .viewCount(updatedViewCount)
                 .createdAt(chapter.getCreatedAt())
                 .updatedAt(chapter.getUpdatedAt())
                 .images(imageResponses)
@@ -201,22 +199,17 @@ public class ChapterServiceImpl implements ChapterService {
 
         comicSecurityEvaluator.verifyOwnership(chapter.getComic());
 
-        List<String> filePaths = chapter.getImages().stream()
+        List<String> filePaths = chapter.getImages() != null ? chapter.getImages().stream()
                 .map(ChapterImage::getImagePath)
-                .toList();
+                .toList() : List.of();
 
-        Path chapterDir = null;
-        if (chapter.getImages() != null && !chapter.getImages().isEmpty()) {
-            String firstPath = chapter.getImages().get(0).getImagePath();
-            if (firstPath != null) {
-                chapterDir = Paths.get(firstPath).getParent();
-            }
-        }
+        Comic comic = chapter.getComic();
+        String chapterNumStr = formatChapterNumber(chapter.getChapterNumber());
+        String chapterDirName = comic.getSlug() + "-chapter-" + chapterNumStr;
+        Path chapterDir = Paths.get(comicUploadDir, comic.getSlug(), chapterDirName);
 
         fileStorageService.scheduleFileCleanupOnCommit(filePaths, null);
-        if (chapterDir != null) {
-            fileStorageService.scheduleDirectoryCleanupOnCommit(chapterDir.toString());
-        }
+        fileStorageService.scheduleDirectoryCleanupOnCommit(chapterDir.toString().replace('\\', '/'));
 
         chapterRepository.delete(chapter);
     }

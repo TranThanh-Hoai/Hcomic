@@ -5,7 +5,6 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -54,7 +53,6 @@ public class ChapterImageServiceImpl implements ChapterImageService {
     }
 
     @Override
-    @Transactional
     public List<ChapterImageResponse> uploadImagesBatch(Long chapterId, List<MultipartFile> images, Integer startPageNumber) {
         if (images == null || images.isEmpty()) {
             throw new BadRequestException("Image batch cannot be empty");
@@ -74,25 +72,30 @@ public class ChapterImageServiceImpl implements ChapterImageService {
 
         int startPage = (startPageNumber != null && startPageNumber > 0) ? startPageNumber : 1;
         List<ChapterImageResponse> responses = new ArrayList<>();
-        AtomicInteger retryCount = new AtomicInteger(0);
+        List<String> newlySavedPaths = new ArrayList<>();
 
         try {
             for (int i = 0; i < images.size(); i++) {
                 MultipartFile file = images.get(i);
                 int pageNum = startPage + i;
                 ChapterImageResponse resp = null;
+                int fileRetries = 0;
                 while (true) {
                     try {
                         resp = processSaveOrReplace(chapter, file, pageNum);
                         break;
                     } catch (BadRequestException ex) {
-                        if (retryCount.incrementAndGet() > 3 || !ex.getMessage().contains("Failed to save image")) {
+                        fileRetries++;
+                        if (fileRetries > 3 || !ex.getMessage().contains("Failed to save image")) {
                             throw ex;
                         }
-                        log.warn("Retrying image upload for page {} after error: {}", pageNum, ex.getMessage());
+                        log.warn("Retrying image upload for page {} (attempt {}) after error: {}", pageNum, fileRetries, ex.getMessage());
                     }
                 }
                 responses.add(resp);
+                if (resp != null && resp.getImageUrl() != null) {
+                    newlySavedPaths.add(resp.getImageUrl());
+                }
             }
 
             chapter.setUploadStatus("COMPLETED");
@@ -101,7 +104,9 @@ public class ChapterImageServiceImpl implements ChapterImageService {
         } catch (Exception ex) {
             chapter.setUploadStatus("FAILED");
             chapterRepository.save(chapter);
-            cleanupPartialImages(chapter);
+            if (!newlySavedPaths.isEmpty()) {
+                fileStorageService.deleteFiles(newlySavedPaths);
+            }
             throw ex;
         }
     }
@@ -109,20 +114,21 @@ public class ChapterImageServiceImpl implements ChapterImageService {
     @Override
     @Transactional(readOnly = true)
     public int countImages(Long chapterId) {
-        if (!chapterRepository.existsById(chapterId)) {
+        List<ChapterImage> images = chapterImageRepository.findByChapterIdOrderByPageNumberAsc(chapterId);
+        if (images.isEmpty() && !chapterRepository.existsById(chapterId)) {
             throw new ResourceNotFoundException("Chapter not found with id: " + chapterId);
         }
-        return chapterImageRepository.findByChapterIdOrderByPageNumberAsc(chapterId).size();
+        return images.size();
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<ChapterImageResponse> getChapterImages(Long chapterId) {
-        if (!chapterRepository.existsById(chapterId)) {
+        List<ChapterImage> images = chapterImageRepository.findByChapterIdOrderByPageNumberAsc(chapterId);
+        if (images.isEmpty() && !chapterRepository.existsById(chapterId)) {
             throw new ResourceNotFoundException("Chapter not found with id: " + chapterId);
         }
 
-        List<ChapterImage> images = chapterImageRepository.findByChapterIdOrderByPageNumberAsc(chapterId);
         return images.stream()
                 .map(img -> ChapterImageResponse.builder()
                         .pageNumber(img.getPageNumber())
@@ -168,25 +174,6 @@ public class ChapterImageServiceImpl implements ChapterImageService {
         return deletedCount;
     }
 
-    private void cleanupPartialImages(Chapter chapter) {
-        if (chapter.getImages() == null || chapter.getImages().isEmpty()) {
-            return;
-        }
-
-        List<String> pathsToDelete = new ArrayList<>();
-        for (ChapterImage image : chapter.getImages()) {
-            if (image != null && image.getImagePath() != null) {
-                pathsToDelete.add(image.getImagePath());
-            }
-        }
-
-        chapter.clearImages();
-        chapterRepository.save(chapter);
-        if (!pathsToDelete.isEmpty()) {
-            fileStorageService.deleteFiles(pathsToDelete);
-        }
-    }
-
     private ChapterImageResponse processSaveOrReplace(Chapter chapter, MultipartFile image, Integer pageNumber) {
         if (pageNumber == null || pageNumber < 1) {
             throw new BadRequestException("Page number must be a positive integer");
@@ -206,7 +193,7 @@ public class ChapterImageServiceImpl implements ChapterImageService {
         String savedPath;
         try {
             byte[] webpBytes = imageProcessor.convertToWebp(image);
-            savedPath = fileStorageService.saveFile(webpBytes, chapterDir.toString(), fileName);
+            savedPath = fileStorageService.saveFile(webpBytes, chapterDir.toString(), fileName).replace('\\', '/');
         } catch (Exception e) {
             throw new BadRequestException("Failed to save image for page " + pageNumber + ": " + e.getMessage());
         }

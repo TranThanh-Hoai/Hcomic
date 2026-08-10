@@ -16,6 +16,7 @@ services:
       DB_USERNAME: postgres
       DB_PASSWORD: postgres
       JWT_SECRET: ${JWT_SECRET:-K9mP2xQ7nLs4Vz8RwH3tY6cFd1BaU5Je}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:5173,http://localhost:3000,https://hcomic.online,https://www.hcomic.online}
 
       JAVA_TOOL_OPTIONS: "-XX:InitialRAMPercentage=25 -XX:MaxRAMPercentage=60"
     volumes:

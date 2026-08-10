@@ -111,14 +111,14 @@ class ReaderLibraryBookmarkServiceTest {
         when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.of(user));
         when(comicRepository.findById(comic.getId())).thenReturn(Optional.of(comic));
         when(chapterRepository.findById(chapter.getId())).thenReturn(Optional.of(chapter));
-        when(readingHistoryRepository.findByUserUserIdAndComicComicId(user.getUserId(), comic.getId()))
+        when(readingHistoryRepository.findByUserUserIdAndComicId(user.getUserId(), comic.getId()))
                 .thenReturn(Optional.empty());
         when(readingHistoryRepository.save(any(ReadingHistory.class))).thenAnswer(invocation -> {
             ReadingHistory history = invocation.getArgument(0);
             history.setId(500L);
             return history;
         });
-        when(userComicLibraryRepository.existsByUserUserIdAndComicComicId(user.getUserId(), comic.getId()))
+        when(userComicLibraryRepository.existsByUserUserIdAndComicId(user.getUserId(), comic.getId()))
                 .thenReturn(false);
 
         ReadingHistoryResponse response = service.saveOrUpdateProgress(request, USERNAME);
@@ -160,10 +160,10 @@ class ReaderLibraryBookmarkServiceTest {
         when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.of(user));
         when(comicRepository.findById(comic.getId())).thenReturn(Optional.of(comic));
         when(chapterRepository.findById(chapter.getId())).thenReturn(Optional.of(chapter));
-        when(readingHistoryRepository.findByUserUserIdAndComicComicId(user.getUserId(), comic.getId()))
+        when(readingHistoryRepository.findByUserUserIdAndComicId(user.getUserId(), comic.getId()))
                 .thenReturn(Optional.of(existing));
         when(readingHistoryRepository.save(existing)).thenReturn(existing);
-        when(userComicLibraryRepository.existsByUserUserIdAndComicComicId(user.getUserId(), comic.getId()))
+        when(userComicLibraryRepository.existsByUserUserIdAndComicId(user.getUserId(), comic.getId()))
                 .thenReturn(true);
 
         ReadingHistoryResponse response = service.saveOrUpdateProgress(request, USERNAME);
@@ -228,10 +228,10 @@ class ReaderLibraryBookmarkServiceTest {
 
         when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.of(user));
         when(comicRepository.findById(comic.getId())).thenReturn(Optional.of(comic));
-        when(userComicLibraryRepository.findByUserUserIdAndComicComicId(user.getUserId(), comic.getId()))
+        when(userComicLibraryRepository.findByUserUserIdAndComicId(user.getUserId(), comic.getId()))
                 .thenReturn(Optional.of(existing));
         when(userComicLibraryRepository.save(existing)).thenReturn(existing);
-        when(readingHistoryRepository.findByUserUserIdAndComicComicId(user.getUserId(), comic.getId()))
+        when(readingHistoryRepository.findByUserUserIdAndComicId(user.getUserId(), comic.getId()))
                 .thenReturn(Optional.of(history));
 
         UserComicLibraryResponse response = service.updateLibraryStatus(updateRequest, USERNAME);
@@ -268,7 +268,7 @@ class ReaderLibraryBookmarkServiceTest {
         when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.of(user));
         when(comicRepository.findById(comic.getId())).thenReturn(Optional.of(comic));
         when(chapterRepository.findById(chapter.getId())).thenReturn(Optional.of(chapter));
-        when(pageBookmarkRepository.findByUserUserIdAndChapterChapterIdAndPageNumber(
+        when(pageBookmarkRepository.findByUserUserIdAndChapterIdAndPageNumber(
                 user.getUserId(), chapter.getId(), request.getPageNumber())).thenReturn(Optional.empty());
         when(pageBookmarkRepository.save(any(PageBookmark.class))).thenAnswer(invocation -> {
             PageBookmark bookmark = invocation.getArgument(0);
@@ -291,15 +291,15 @@ class ReaderLibraryBookmarkServiceTest {
                 .note("good page")
                 .build();
         request.setNote("updated note");
-        when(pageBookmarkRepository.findByUserUserIdAndChapterChapterIdAndPageNumber(
+        when(pageBookmarkRepository.findByUserUserIdAndChapterIdAndPageNumber(
                 user.getUserId(), chapter.getId(), request.getPageNumber())).thenReturn(Optional.of(existing));
         when(pageBookmarkRepository.save(existing)).thenReturn(existing);
 
         assertThat(service.createOrUpdateBookmark(request, USERNAME).getNote()).isEqualTo("updated note");
 
-        when(pageBookmarkRepository.findByUserUserIdAndComicComicIdOrderByCreatedAtDesc(user.getUserId(), comic.getId()))
+        when(pageBookmarkRepository.findByUserUserIdAndComicIdOrderByCreatedAtDesc(user.getUserId(), comic.getId()))
                 .thenReturn(List.of(existing));
-        when(pageBookmarkRepository.findByUserUserIdAndChapterChapterIdOrderByPageNumberAsc(user.getUserId(), chapter.getId()))
+        when(pageBookmarkRepository.findByUserUserIdAndChapterIdOrderByPageNumberAsc(user.getUserId(), chapter.getId()))
                 .thenReturn(List.of(existing));
         assertThat(service.getBookmarksByComic(comic.getId(), USERNAME)).hasSize(1);
         assertThat(service.getBookmarksByChapter(chapter.getId(), USERNAME)).hasSize(1);

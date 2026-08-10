@@ -11,10 +11,10 @@ import com.comic.h.enums.ShelfStatus;
 
 public interface UserComicLibraryRepository extends JpaRepository<UserComicLibrary, Long> {
 
-    Optional<UserComicLibrary> findByUserUserIdAndComicComicId(Long userId, Long comicId);
+    Optional<UserComicLibrary> findByUserUserIdAndComicId(Long userId, Long comicId);
 
     @Query("SELECT ucl FROM UserComicLibrary ucl WHERE ucl.user.userId = :userId AND (:status IS NULL OR ucl.status = :status) ORDER BY ucl.updatedAt DESC")
     List<UserComicLibrary> findByUserIdAndStatus(@Param("userId") Long userId, @Param("status") ShelfStatus status);
 
-    boolean existsByUserUserIdAndComicComicId(Long userId, Long comicId);
+    boolean existsByUserUserIdAndComicId(Long userId, Long comicId);
 }

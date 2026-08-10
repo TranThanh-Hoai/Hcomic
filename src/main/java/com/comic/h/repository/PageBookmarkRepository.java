@@ -10,11 +10,11 @@ import com.comic.h.entity.PageBookmark;
 
 public interface PageBookmarkRepository extends JpaRepository<PageBookmark, Long> {
 
-    Optional<PageBookmark> findByUserUserIdAndChapterChapterIdAndPageNumber(Long userId, Long chapterId, Integer pageNumber);
+    Optional<PageBookmark> findByUserUserIdAndChapterIdAndPageNumber(Long userId, Long chapterId, Integer pageNumber);
 
-    List<PageBookmark> findByUserUserIdAndComicComicIdOrderByCreatedAtDesc(Long userId, Long comicId);
+    List<PageBookmark> findByUserUserIdAndComicIdOrderByCreatedAtDesc(Long userId, Long comicId);
 
-    List<PageBookmark> findByUserUserIdAndChapterChapterIdOrderByPageNumberAsc(Long userId, Long chapterId);
+    List<PageBookmark> findByUserUserIdAndChapterIdOrderByPageNumberAsc(Long userId, Long chapterId);
 
     @Query("SELECT pb FROM PageBookmark pb WHERE pb.user.userId = :userId ORDER BY pb.createdAt DESC")
     List<PageBookmark> findAllByUserIdOrderByCreatedAtDesc(@Param("userId") Long userId);

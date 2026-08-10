@@ -13,6 +13,8 @@ import com.comic.h.entity.Chapter;
 import com.comic.h.entity.Comic;
 import com.comic.h.entity.PageBookmark;
 import com.comic.h.entity.User;
+import com.comic.h.exception.BadRequestException;
+import com.comic.h.exception.ForbiddenException;
 import com.comic.h.exception.ResourceNotFoundException;
 import com.comic.h.repository.ChapterRepository;
 import com.comic.h.repository.ComicRepository;
@@ -39,6 +41,7 @@ public class PageBookmarkServiceImpl implements PageBookmarkService {
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy truyện với id: " + request.getComicId()));
         Chapter chapter = chapterRepository.findById(request.getChapterId())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy chương với id: " + request.getChapterId()));
+        validateChapterBelongsToComic(chapter, comic);
 
         Optional<PageBookmark> existingOpt = pageBookmarkRepository.findByUserUserIdAndChapterChapterIdAndPageNumber(
                 user.getUserId(), chapter.getId(), request.getPageNumber());
@@ -95,7 +98,7 @@ public class PageBookmarkServiceImpl implements PageBookmarkService {
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy bookmark với id: " + bookmarkId));
 
         if (!bookmark.getUser().getUserId().equals(user.getUserId())) {
-            throw theoreticalSecurityException("Bạn không có quyền xóa bookmark này");
+            throw new ForbiddenException("Bạn không có quyền xóa bookmark này");
         }
 
         pageBookmarkRepository.delete(bookmark);
@@ -106,8 +109,10 @@ public class PageBookmarkServiceImpl implements PageBookmarkService {
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng: " + username));
     }
 
-    private RuntimeException theoreticalSecurityException(String msg) {
-        return new RuntimeException(msg);
+    private void validateChapterBelongsToComic(Chapter chapter, Comic comic) {
+        if (!chapter.getComic().getId().equals(comic.getId())) {
+            throw new BadRequestException("Chapter does not belong to the requested comic");
+        }
     }
 
     private PageBookmarkResponse mapToResponse(PageBookmark bookmark) {

@@ -15,6 +15,7 @@ import com.comic.h.entity.ReadingHistory;
 import com.comic.h.entity.User;
 import com.comic.h.entity.UserComicLibrary;
 import com.comic.h.enums.ShelfStatus;
+import com.comic.h.exception.BadRequestException;
 import com.comic.h.exception.ResourceNotFoundException;
 import com.comic.h.repository.ChapterRepository;
 import com.comic.h.repository.ComicRepository;
@@ -43,6 +44,7 @@ public class ReadingHistoryServiceImpl implements ReadingHistoryService {
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy truyện với id: " + request.getComicId()));
         Chapter chapter = chapterRepository.findById(request.getChapterId())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy chương với id: " + request.getChapterId()));
+        validateChapterBelongsToComic(chapter, comic);
 
         Optional<ReadingHistory> existingOpt = readingHistoryRepository.findByUserUserIdAndComicComicId(user.getUserId(), comic.getId());
 
@@ -102,6 +104,12 @@ public class ReadingHistoryServiceImpl implements ReadingHistoryService {
     private User findUserByUsername(String username) {
         return userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng: " + username));
+    }
+
+    private void validateChapterBelongsToComic(Chapter chapter, Comic comic) {
+        if (!chapter.getComic().getId().equals(comic.getId())) {
+            throw new BadRequestException("Chapter does not belong to the requested comic");
+        }
     }
 
     private ReadingHistoryResponse mapToResponse(ReadingHistory history) {

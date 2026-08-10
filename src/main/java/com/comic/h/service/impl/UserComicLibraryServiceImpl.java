@@ -39,7 +39,7 @@ public class UserComicLibraryServiceImpl implements UserComicLibraryService {
         Comic comic = comicRepository.findById(request.getComicId())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy truyện với id: " + request.getComicId()));
 
-        Optional<UserComicLibrary> existingOpt = userComicLibraryRepository.findByUserUserIdAndComicComicId(user.getUserId(), comic.getId());
+        Optional<UserComicLibrary> existingOpt = userComicLibraryRepository.findByUserUserIdAndComicId(user.getUserId(), comic.getId());
 
         if (request.getStatus() == null) {
             // Remove from library if status is set to null
@@ -75,7 +75,7 @@ public class UserComicLibraryServiceImpl implements UserComicLibraryService {
     @Transactional(readOnly = true)
     public UserComicLibraryResponse getComicLibraryStatus(Long comicId, String username) {
         User user = findUserByUsername(username);
-        return userComicLibraryRepository.findByUserUserIdAndComicComicId(user.getUserId(), comicId)
+        return userComicLibraryRepository.findByUserUserIdAndComicId(user.getUserId(), comicId)
                 .map(this::mapToResponse)
                 .orElse(null);
     }
@@ -87,7 +87,7 @@ public class UserComicLibraryServiceImpl implements UserComicLibraryService {
 
     private UserComicLibraryResponse mapToResponse(UserComicLibrary library) {
         // Find reading progress for this comic if available
-        Optional<ReadingHistory> historyOpt = readingHistoryRepository.findByUserUserIdAndComicComicId(
+        Optional<ReadingHistory> historyOpt = readingHistoryRepository.findByUserUserIdAndComicId(
                 library.getUser().getUserId(), library.getComic().getId());
 
         return UserComicLibraryResponse.builder()

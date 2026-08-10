@@ -43,7 +43,7 @@ public class PageBookmarkServiceImpl implements PageBookmarkService {
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy chương với id: " + request.getChapterId()));
         validateChapterBelongsToComic(chapter, comic);
 
-        Optional<PageBookmark> existingOpt = pageBookmarkRepository.findByUserUserIdAndChapterChapterIdAndPageNumber(
+        Optional<PageBookmark> existingOpt = pageBookmarkRepository.findByUserUserIdAndChapterIdAndPageNumber(
                 user.getUserId(), chapter.getId(), request.getPageNumber());
 
         PageBookmark bookmark;
@@ -70,7 +70,7 @@ public class PageBookmarkServiceImpl implements PageBookmarkService {
     @Transactional(readOnly = true)
     public List<PageBookmarkResponse> getBookmarksByComic(Long comicId, String username) {
         User user = findUserByUsername(username);
-        return pageBookmarkRepository.findByUserUserIdAndComicComicIdOrderByCreatedAtDesc(user.getUserId(), comicId)
+        return pageBookmarkRepository.findByUserUserIdAndComicIdOrderByCreatedAtDesc(user.getUserId(), comicId)
                 .stream().map(this::mapToResponse).collect(Collectors.toList());
     }
 
@@ -78,7 +78,7 @@ public class PageBookmarkServiceImpl implements PageBookmarkService {
     @Transactional(readOnly = true)
     public List<PageBookmarkResponse> getBookmarksByChapter(Long chapterId, String username) {
         User user = findUserByUsername(username);
-        return pageBookmarkRepository.findByUserUserIdAndChapterChapterIdOrderByPageNumberAsc(user.getUserId(), chapterId)
+        return pageBookmarkRepository.findByUserUserIdAndChapterIdOrderByPageNumberAsc(user.getUserId(), chapterId)
                 .stream().map(this::mapToResponse).collect(Collectors.toList());
     }
 

@@ -46,7 +46,7 @@ public class ReadingHistoryServiceImpl implements ReadingHistoryService {
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy chương với id: " + request.getChapterId()));
         validateChapterBelongsToComic(chapter, comic);
 
-        Optional<ReadingHistory> existingOpt = readingHistoryRepository.findByUserUserIdAndComicComicId(user.getUserId(), comic.getId());
+        Optional<ReadingHistory> existingOpt = readingHistoryRepository.findByUserUserIdAndComicId(user.getUserId(), comic.getId());
 
         ReadingHistory history;
         if (existingOpt.isPresent()) {
@@ -71,7 +71,7 @@ public class ReadingHistoryServiceImpl implements ReadingHistoryService {
         ReadingHistory saved = readingHistoryRepository.save(history);
 
         // Auto add to library as READING if not already in library
-        boolean existsInLibrary = userComicLibraryRepository.existsByUserUserIdAndComicComicId(user.getUserId(), comic.getId());
+        boolean existsInLibrary = userComicLibraryRepository.existsByUserUserIdAndComicId(user.getUserId(), comic.getId());
         if (!existsInLibrary) {
             UserComicLibrary library = UserComicLibrary.builder()
                     .user(user)
@@ -96,7 +96,7 @@ public class ReadingHistoryServiceImpl implements ReadingHistoryService {
     @Transactional(readOnly = true)
     public ReadingHistoryResponse getProgressByComicId(Long comicId, String username) {
         User user = findUserByUsername(username);
-        return readingHistoryRepository.findByUserUserIdAndComicComicId(user.getUserId(), comicId)
+        return readingHistoryRepository.findByUserUserIdAndComicId(user.getUserId(), comicId)
                 .map(this::mapToResponse)
                 .orElse(null);
     }

@@ -27,7 +27,7 @@ public class DataInitializer implements CommandLineRunner {
     @Value("${ADMIN_USERNAME}")
     private String adminUsername;
 
-    @Value("${ADMIN_PASSWROD:${ADMIN_PASSWORD}}")
+    @Value("${ADMIN_PASSWORD}")
     private String adminPassword;
 
     private final UserRepository userRepository;

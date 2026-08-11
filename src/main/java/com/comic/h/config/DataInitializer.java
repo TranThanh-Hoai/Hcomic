@@ -26,10 +26,10 @@ public class DataInitializer implements CommandLineRunner {
     @Value("${app.upload.chapter-dir:upload/chapter}")
     private String chapterUploadDir;
 
-    @Value("${app.admin.username}")
+    @Value("${ADMIN_USERNAME}")
     private String adminUsername;
 
-    @Value("${app.admin.password}")
+    @Value("${ADMIN_PASSWORD}")
     private String adminPassword;
 
     private final UserRepository userRepository;

@@ -24,6 +24,12 @@ public class DataInitializer implements CommandLineRunner {
     @Value("${app.upload.chapter-dir:upload/chapter}")
     private String chapterUploadDir;
 
+    @Value("${ADMIN_USERNAME}")
+    private String adminUsername;
+
+    @Value("${ADMIN_PASSWROD:${ADMIN_PASSWORD}}")
+    private String adminPassword;
+
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
@@ -32,6 +38,7 @@ public class DataInitializer implements CommandLineRunner {
         initUploadDirectories();
         createAccountIfNotFound("user", Role.USER, "123456");
         createAccountIfNotFound("translator", Role.TRANSLATOR, "123456");
+        createAccountIfNotFound(adminUsername, Role.ADMIN, adminPassword);
     }
 
     private void initUploadDirectories() {

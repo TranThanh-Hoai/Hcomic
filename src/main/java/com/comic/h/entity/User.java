@@ -22,6 +22,7 @@ import lombok.*;
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 @Table(name = "users")
 public class User {
 
@@ -51,6 +52,16 @@ public class User {
 
     @Column(name = "bio", columnDefinition = "TEXT")
     private String bio;
+
+    @Builder.Default
+    @Column(name = "is_banned")
+    private Boolean isBanned = false;
+
+    @Column(name = "ban_reason", columnDefinition = "TEXT")
+    private String banReason;
+
+    @Column(name = "banned_at")
+    private LocalDateTime bannedAt;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

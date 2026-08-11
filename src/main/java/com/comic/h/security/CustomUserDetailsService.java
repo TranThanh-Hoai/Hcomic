@@ -24,11 +24,16 @@ public class CustomUserDetailsService implements UserDetailsService {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with username: " + username));
 
+        boolean isNotBanned = !Boolean.TRUE.equals(user.getIsBanned());
         String roleName = user.getRole() != null ? "ROLE_" + user.getRole().name() : "ROLE_USER";
 
         return new org.springframework.security.core.userdetails.User(
                 user.getUsername(),
                 user.getPassword(),
+                true,
+                true,
+                true,
+                isNotBanned,
                 Collections.singletonList(new SimpleGrantedAuthority(roleName))
         );
     }

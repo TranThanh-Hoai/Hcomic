@@ -9,9 +9,13 @@ public interface CommentService {
 
     CommentResponse createComment(Long comicId, CommentRequest request, String username);
 
+    CommentResponse createChapterComment(Long chapterId, CommentRequest request, String username);
+
     CommentResponse updateComment(Long commentId, CommentRequest request, String username);
 
     void deleteComment(Long commentId, String username);
 
     List<CommentResponse> getCommentsByComicId(Long comicId);
+
+    List<CommentResponse> getCommentsByChapterId(Long chapterId);
 }

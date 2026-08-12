@@ -7,6 +7,7 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
@@ -68,5 +69,54 @@ public class UploadUtils {
         }
 
         return filePath.toString();
+    }
+
+    public static List<String> saveFiles(List<MultipartFile> files, String uploadDir) throws IOException {
+        if (files == null || files.isEmpty()) {
+            throw new IllegalArgumentException("File list cannot be empty");
+        }
+
+        List<String> savedPaths = new ArrayList<>();
+        try {
+            for (MultipartFile file : files) {
+                if (file != null && !file.isEmpty()) {
+                    String savedPath = saveFile(file, uploadDir);
+                    savedPaths.add(savedPath);
+                }
+            }
+            if (savedPaths.isEmpty()) {
+                throw new IllegalArgumentException("No valid files were uploaded");
+            }
+            return savedPaths;
+        } catch (Exception e) {
+            deleteFiles(savedPaths);
+            if (e instanceof IOException) {
+                throw (IOException) e;
+            } else if (e instanceof IllegalArgumentException) {
+                throw (IllegalArgumentException) e;
+            } else {
+                throw new IOException("Failed to save files: " + e.getMessage(), e);
+            }
+        }
+    }
+
+    public static boolean deleteFile(String filePath) {
+        if (filePath == null || filePath.trim().isEmpty()) {
+            return false;
+        }
+        try {
+            Path path = Paths.get(filePath);
+            return Files.deleteIfExists(path);
+        } catch (IOException e) {
+            return false;
+        }
+    }
+
+    public static void deleteFiles(List<String> filePaths) {
+        if (filePaths != null && !filePaths.isEmpty()) {
+            for (String filePath : filePaths) {
+                deleteFile(filePath);
+            }
+        }
     }
 }

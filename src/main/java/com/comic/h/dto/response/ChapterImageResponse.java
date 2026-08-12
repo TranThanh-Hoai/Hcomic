@@ -13,7 +13,6 @@ import lombok.Setter;
 @Builder
 public class ChapterImageResponse {
 
-    private Long id;
     private Integer pageNumber;
-    private String imagePath;
+    private String imageUrl;
 }

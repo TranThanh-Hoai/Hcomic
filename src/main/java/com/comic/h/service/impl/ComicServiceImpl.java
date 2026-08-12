@@ -19,6 +19,7 @@ import com.comic.h.entity.User;
 import com.comic.h.enums.ComicStatus;
 import com.comic.h.exception.ForbiddenException;
 import com.comic.h.exception.ResourceNotFoundException;
+import com.comic.h.mapper.ComicMapper;
 import com.comic.h.repository.ChapterImageRepository;
 import com.comic.h.repository.ComicRepository;
 import com.comic.h.repository.UserRepository;
@@ -43,6 +44,7 @@ public class ComicServiceImpl implements ComicService {
     private final FileStorageService fileStorageService;
     private final ImageProcessor imageProcessor;
     private final ComicSecurityEvaluator comicSecurityEvaluator;
+    private final ComicMapper comicMapper;
 
     @Override
     @Transactional
@@ -74,7 +76,7 @@ public class ComicServiceImpl implements ComicService {
                 .build();
 
         Comic savedComic = comicRepository.save(comic);
-        return mapToResponse(savedComic);
+        return comicMapper.toResponse(savedComic);
     }
 
     @Override
@@ -82,7 +84,7 @@ public class ComicServiceImpl implements ComicService {
     public List<ComicResponse> getAllComics() {
         return comicRepository.findAll()
                 .stream()
-                .map(this::mapToResponse)
+                .map(comicMapper::toResponse)
                 .toList();
     }
 
@@ -91,7 +93,7 @@ public class ComicServiceImpl implements ComicService {
     public ComicResponse getComicById(Long id) {
         Comic comic = comicRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Comic not found with id: " + id));
-        return mapToResponse(comic);
+        return comicMapper.toResponse(comic);
     }
 
     @Override
@@ -99,7 +101,7 @@ public class ComicServiceImpl implements ComicService {
     public ComicResponse getComicBySlug(String slug) {
         Comic comic = comicRepository.findBySlug(slug)
                 .orElseThrow(() -> new ResourceNotFoundException("Comic not found with slug: " + slug));
-        return mapToResponse(comic);
+        return comicMapper.toResponse(comic);
     }
 
     @Override
@@ -164,7 +166,7 @@ public class ComicServiceImpl implements ComicService {
 
         try {
             Comic savedComic = comicRepository.save(comic);
-            return mapToResponse(savedComic);
+            return comicMapper.toResponse(savedComic);
         } catch (RuntimeException e) {
             if (!TransactionSynchronizationManager.isActualTransactionActive() && newCoverPath != null) {
                 fileStorageService.deleteFile(newCoverPath);
@@ -207,7 +209,7 @@ public class ComicServiceImpl implements ComicService {
     public List<ComicResponse> getComicsByUploader(String uploader) {
         return comicRepository.findByUploaderUsernameOrderByCreatedAtDesc(uploader)
                 .stream()
-                .map(this::mapToResponse)
+                .map(comicMapper::toResponse)
                 .toList();
     }
 
@@ -235,24 +237,5 @@ public class ComicServiceImpl implements ComicService {
         } catch (Exception e) {
             throw new RuntimeException("Failed to upload comic cover image: " + e.getMessage(), e);
         }
-    }
-
-    private ComicResponse mapToResponse(Comic comic) {
-        String uploaderUsername = comic.getUploader() != null ? comic.getUploader().getUsername() : null;
-        return ComicResponse.builder()
-                .id(comic.getId())
-                .title(comic.getTitle())
-                .slug(comic.getSlug())
-                .description(comic.getDescription())
-                .author(comic.getAuthor())
-                .uploader(uploaderUsername)
-                .coverImage(comic.getCoverImage())
-                .viewCount(comic.getViewCount())
-                .likeCount(comic.getLikeCount())
-                .rating(comic.getAvgRating())
-                .status(comic.getStatus())
-                .createdAt(comic.getCreatedAt())
-                .updatedAt(comic.getUpdatedAt())
-                .build();
     }
 }

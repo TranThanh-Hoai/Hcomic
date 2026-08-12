@@ -13,6 +13,7 @@ import com.comic.h.dto.response.AdminUserResponse;
 import com.comic.h.entity.User;
 import com.comic.h.enums.Role;
 import com.comic.h.exception.ResourceNotFoundException;
+import com.comic.h.mapper.UserMapper;
 import com.comic.h.repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -23,12 +24,13 @@ import lombok.RequiredArgsConstructor;
 public class AdminUserService {
 
     private final UserRepository userRepository;
+    private final UserMapper userMapper;
 
     @Transactional(readOnly = true)
     public Page<AdminUserResponse> searchUsers(String query, Role role, Boolean isBanned, Pageable pageable) {
         String cleanQuery = (query != null && !query.trim().isEmpty()) ? query.trim() : null;
         Page<User> users = userRepository.searchUsers(cleanQuery, role, isBanned, pageable);
-        return users.map(this::mapToAdminUserResponse);
+        return users.map(userMapper::toAdminUserResponse);
     }
 
     public AdminUserResponse banUser(Long userId, BanUserRequest request) {
@@ -40,7 +42,7 @@ public class AdminUserService {
         user.setBannedAt(LocalDateTime.now());
 
         User savedUser = userRepository.save(user);
-        return mapToAdminUserResponse(savedUser);
+        return userMapper.toAdminUserResponse(savedUser);
     }
 
     public AdminUserResponse unbanUser(Long userId) {
@@ -52,7 +54,7 @@ public class AdminUserService {
         user.setBannedAt(null);
 
         User savedUser = userRepository.save(user);
-        return mapToAdminUserResponse(savedUser);
+        return userMapper.toAdminUserResponse(savedUser);
     }
 
     public AdminUserResponse updateUserRole(Long userId, UpdateRoleRequest request) {
@@ -61,21 +63,7 @@ public class AdminUserService {
 
         user.setRole(request.getRole());
         User savedUser = userRepository.save(user);
-        return mapToAdminUserResponse(savedUser);
+        return userMapper.toAdminUserResponse(savedUser);
     }
 
-    private AdminUserResponse mapToAdminUserResponse(User user) {
-        return AdminUserResponse.builder()
-                .userId(user.getUserId())
-                .username(user.getUsername())
-                .email(user.getEmail())
-                .displayName(user.getDisplayName())
-                .avatar(user.getAvatar())
-                .role(user.getRole())
-                .isBanned(user.getIsBanned() != null ? user.getIsBanned() : false)
-                .banReason(user.getBanReason())
-                .bannedAt(user.getBannedAt())
-                .createdAt(user.getCreatedAt())
-                .build();
-    }
 }

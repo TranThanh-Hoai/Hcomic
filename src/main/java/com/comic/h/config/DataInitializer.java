@@ -13,8 +13,6 @@ import com.comic.h.util.UploadUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-import org.springframework.util.StringUtils;
-
 @Component
 @RequiredArgsConstructor
 @Slf4j
@@ -40,11 +38,7 @@ public class DataInitializer implements CommandLineRunner {
         initUploadDirectories();
         createAccountIfNotFound("user", Role.USER, "123456");
         createAccountIfNotFound("translator", Role.TRANSLATOR, "123456");
-        if (StringUtils.hasText(adminUsername) && StringUtils.hasText(adminPassword)) {
-            createAccountIfNotFound(adminUsername, Role.ADMIN, adminPassword);
-        } else {
-            log.info("No admin username or password specified, skipping initial admin creation");
-        }
+        createAccountIfNotFound(adminUsername, Role.ADMIN, adminPassword);
     }
 
     private void initUploadDirectories() {

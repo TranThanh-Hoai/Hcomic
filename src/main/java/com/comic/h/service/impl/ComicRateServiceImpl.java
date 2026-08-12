@@ -9,6 +9,7 @@ import com.comic.h.entity.Comic;
 import com.comic.h.entity.ComicRate;
 import com.comic.h.entity.User;
 import com.comic.h.exception.ResourceNotFoundException;
+import com.comic.h.mapper.ComicRateMapper;
 import com.comic.h.repository.ComicRateRepository;
 import com.comic.h.repository.ComicRepository;
 import com.comic.h.repository.UserRepository;
@@ -23,6 +24,7 @@ public class ComicRateServiceImpl implements ComicRateService {
     private final ComicRateRepository ratingRepository;
     private final ComicRepository comicRepository;
     private final UserRepository userRepository;
+    private final ComicRateMapper comicRateMapper;
 
     @Override
     @Transactional(readOnly = true)
@@ -52,7 +54,7 @@ public class ComicRateServiceImpl implements ComicRateService {
         double avgRating = getAverageRating(comic.getId());
         comic.setAvgRating(avgRating);
 
-        return mapToResponse(savedRating);
+        return comicRateMapper.toResponse(savedRating);
     }
 
     @Override
@@ -61,16 +63,7 @@ public class ComicRateServiceImpl implements ComicRateService {
         ComicRate rating = ratingRepository.findByUserUsernameAndComicId(username, comicId)
                 .orElseThrow(
                         () -> new ResourceNotFoundException("Rating not found for user: " + username + " on comic: " + comicId));
-        return mapToResponse(rating);
+        return comicRateMapper.toResponse(rating);
     }
 
-    private ComicRateResponse mapToResponse(ComicRate rating) {
-        return ComicRateResponse.builder()
-                .id(rating.getId())
-                .comicId(rating.getComic().getId())
-                .userId(rating.getUser().getUserId())
-                .username(rating.getUser().getUsername())
-                .rating(rating.getRating())
-                .build();
-    }
 }

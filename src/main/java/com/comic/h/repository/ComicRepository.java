@@ -1,10 +1,12 @@
 package com.comic.h.repository;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import com.comic.h.entity.Comic;
+import com.comic.h.entity.User;
 
 public interface ComicRepository extends JpaRepository<Comic, Long> {
 
@@ -13,4 +15,10 @@ public interface ComicRepository extends JpaRepository<Comic, Long> {
     boolean existsBySlug(String slug);
 
     boolean existsByTitle(String title);
+
+    List<Comic> findByUploaderUsernameOrderByCreatedAtDesc(String username);
+
+    List<Comic> findByUploader(User uploader);
 }
+
+

@@ -11,9 +11,12 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -41,28 +44,30 @@ public class Comic {
     @Column(name = "slug", unique = true)
     private String slug;
 
-    @Column(name = "description")
+    @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 
     @Column(name = "author")
     private String author;
 
-    @Column(name = "uploader")
-    private String uploader;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private User uploader;
 
     @Column(name = "cover_image")
     private String coverImage;
 
+
     @Builder.Default
-    @Column(name = "view_count", columnDefinition = "BIGINT DEFAULT 0")
+    @Column(name = "view_count")
     private Long viewCount = 0L;
 
     @Builder.Default
-    @Column(name = "like_count", columnDefinition = "BIGINT DEFAULT 0")
+    @Column(name = "like_count")
     private Long likeCount = 0L;
 
     @Builder.Default
-    @Column(name = "rating", columnDefinition = "TINYINT")
+    @Column(name = "rating")
     private Double avgRating = 0.0;
 
     @Enumerated(EnumType.STRING)

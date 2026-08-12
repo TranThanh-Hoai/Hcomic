@@ -9,7 +9,7 @@ import lombok.*;
 @AllArgsConstructor
 @Builder
 @Entity
-@Table(name = "comic_rate",
+@Table(name = "comic_rates",
     uniqueConstraints = {
         @UniqueConstraint(name = "uk_comic_rate_user_comic", columnNames = {"user_id", "comic_id"})
     })
@@ -20,12 +20,12 @@ public class ComicRate {
     @Column(name = "review_id")
     private Long id;
 
-    @ManyToOne
-    @JoinColumn(name = "user_id")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @ManyToOne
-    @JoinColumn(name = "comic_id")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "comic_id", nullable = false)
     private Comic comic;
 
     @Column(name = "rating")

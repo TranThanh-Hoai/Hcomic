@@ -30,7 +30,7 @@ public class ComicController {
 
     private final ComicService comicService;
 
-    @PreAuthorize("hasRole('TRANSLATOR')")
+    @PreAuthorize("hasAnyRole('TRANSLATOR', 'ADMIN')")
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ComicResponse> createComic(
             @Valid @RequestPart("request") ComicRequest request,
@@ -55,6 +55,17 @@ public class ComicController {
     }
 
     @PreAuthorize("hasRole('TRANSLATOR')")
+    @GetMapping("/my-comics")
+    public ResponseEntity<List<ComicResponse>> getMyComics() {
+        return ResponseEntity.ok(comicService.getMyComics());
+    }
+
+    @GetMapping("/uploader/{uploader}")
+    public ResponseEntity<List<ComicResponse>> getComicsByUploader(@PathVariable String uploader) {
+        return ResponseEntity.ok(comicService.getComicsByUploader(uploader));
+    }
+
+    @PreAuthorize("hasAnyRole('TRANSLATOR', 'ADMIN')")
     @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ComicResponse> updateComic(
             @PathVariable Long id,
@@ -63,10 +74,11 @@ public class ComicController {
         return ResponseEntity.ok(comicService.updateComic(id, request, cover));
     }
 
-    @PreAuthorize("hasRole('TRANSLATOR')")
+    @PreAuthorize("hasAnyRole('TRANSLATOR', 'ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<String> deleteComic(@PathVariable Long id) {
         comicService.deleteComic(id);
         return ResponseEntity.ok("Comic deleted successfully with id: " + id);
     }
 }
+

@@ -20,5 +20,10 @@ public interface ComicService {
     ComicResponse updateComic(Long id, ComicRequest request, MultipartFile cover);
 
     void deleteComic(Long id);
+
+    List<ComicResponse> getMyComics();
+
+    List<ComicResponse> getComicsByUploader(String uploader);
 }
+
 

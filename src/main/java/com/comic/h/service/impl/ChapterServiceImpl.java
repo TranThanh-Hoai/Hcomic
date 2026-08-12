@@ -1,5 +1,7 @@
 package com.comic.h.service.impl;
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -35,8 +37,8 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class ChapterServiceImpl implements ChapterService {
 
-    @Value("${app.upload.chapter-dir}")
-    private String chapterUploadDir;
+    @Value("${app.upload.comic-dir:upload/comic}")
+    private String comicUploadDir = "upload/comic";
 
     private final ChapterRepository chapterRepository;
     private final ComicRepository comicRepository;
@@ -69,14 +71,19 @@ public class ChapterServiceImpl implements ChapterService {
             title = "Chương " + chapterNumStr;
         }
 
+        String comicSlug = comic.getSlug();
+        String timestamp = String.valueOf(System.currentTimeMillis() / 1000L);
+        String chapterDirName = comicSlug + "-chapter-" + chapterNumStr + "-" + timestamp;
+        Path chapterDir = Paths.get(comicUploadDir, comicSlug, chapterDirName);
+
         List<String> savedPaths;
         try {
-            savedPaths = UploadUtils.saveFiles(images, chapterUploadDir);
+            savedPaths = UploadUtils.saveFiles(images, chapterDir, comicSlug);
         } catch (Exception e) {
             throw new BadRequestException("Failed to save chapter images: " + e.getMessage());
         }
 
-        scheduleFileCleanupOnRollback(savedPaths);
+        scheduleDirectoryCleanupOnRollback(chapterDir, savedPaths);
 
         try {
             Chapter chapter = Chapter.builder()
@@ -101,7 +108,7 @@ public class ChapterServiceImpl implements ChapterService {
             return mapToChapterResponse(savedChapter);
         } catch (RuntimeException e) {
             if (!TransactionSynchronizationManager.isActualTransactionActive()) {
-                UploadUtils.deleteFiles(savedPaths);
+                UploadUtils.deleteDirectory(chapterDir);
             }
             throw e;
         }
@@ -151,10 +158,7 @@ public class ChapterServiceImpl implements ChapterService {
         Chapter chapter = chapterRepository.findByComicSlugAndSlug(comicSlug, chapterSlug)
                 .orElseThrow(() -> new ResourceNotFoundException("Chapter not found with slug: " + chapterSlug + " for comic: " + comicSlug));
 
-        // Atomic DB view count increment
         chapterRepository.incrementViewCount(chapter.getId());
-        
-        // Immediately reflect view count in memory for current response
         chapter.setViewCount(chapter.getViewCount() + 1);
 
         Comic comic = chapter.getComic();
@@ -211,18 +215,36 @@ public class ChapterServiceImpl implements ChapterService {
         }
 
         List<String> newPaths = null;
+        Path newChapterDir = null;
+        Path oldChapterDir = null;
+
         if (images != null && !images.isEmpty()) {
+            if (chapter.getImages() != null && !chapter.getImages().isEmpty()) {
+                String firstOldPath = chapter.getImages().get(0).getImagePath();
+                if (firstOldPath != null) {
+                    oldChapterDir = Paths.get(firstOldPath).getParent();
+                }
+            }
+
             List<String> oldPaths = chapter.getImages().stream()
                     .map(ChapterImage::getImagePath)
                     .toList();
 
+            String comicSlug = chapter.getComic().getSlug();
+            String timestamp = String.valueOf(System.currentTimeMillis() / 1000L);
+            String chapterDirName = comicSlug + "-chapter-" + formatChapterNumber(chapter.getChapterNumber()) + "-" + timestamp;
+            newChapterDir = Paths.get(comicUploadDir, comicSlug, chapterDirName);
+
             try {
-                newPaths = UploadUtils.saveFiles(images, chapterUploadDir);
+                newPaths = UploadUtils.saveFiles(images, newChapterDir, comicSlug);
             } catch (Exception e) {
                 throw new BadRequestException("Failed to save new chapter images: " + e.getMessage());
             }
 
             scheduleFileCleanupOnCommit(oldPaths, newPaths);
+            if (oldChapterDir != null) {
+                scheduleDirectoryCleanupOnCommit(oldChapterDir, newChapterDir);
+            }
 
             chapter.clearImages();
 
@@ -240,8 +262,12 @@ public class ChapterServiceImpl implements ChapterService {
             Chapter updatedChapter = chapterRepository.save(chapter);
             return mapToChapterResponse(updatedChapter);
         } catch (RuntimeException e) {
-            if (!TransactionSynchronizationManager.isActualTransactionActive() && newPaths != null) {
-                UploadUtils.deleteFiles(newPaths);
+            if (!TransactionSynchronizationManager.isActualTransactionActive()) {
+                if (newChapterDir != null) {
+                    UploadUtils.deleteDirectory(newChapterDir);
+                } else if (newPaths != null) {
+                    UploadUtils.deleteFiles(newPaths);
+                }
             }
             throw e;
         }
@@ -259,7 +285,18 @@ public class ChapterServiceImpl implements ChapterService {
                 .map(ChapterImage::getImagePath)
                 .toList();
 
+        Path chapterDir = null;
+        if (chapter.getImages() != null && !chapter.getImages().isEmpty()) {
+            String firstPath = chapter.getImages().get(0).getImagePath();
+            if (firstPath != null) {
+                chapterDir = Paths.get(firstPath).getParent();
+            }
+        }
+
         scheduleFileCleanupOnCommit(filePaths, null);
+        if (chapterDir != null) {
+            scheduleDirectoryCleanupOnCommit(chapterDir, null);
+        }
 
         chapterRepository.delete(chapter);
     }
@@ -278,24 +315,48 @@ public class ChapterServiceImpl implements ChapterService {
         }
 
         String currentUsername = authentication.getName();
-        if (comic.getUploader() == null || !comic.getUploader().equalsIgnoreCase(currentUsername)) {
+        if (comic.getUploader() == null || comic.getUploader().getUsername() == null || !comic.getUploader().getUsername().equalsIgnoreCase(currentUsername)) {
             throw new ForbiddenException("You do not have permission to modify chapters for this comic");
         }
     }
 
-    private void scheduleFileCleanupOnRollback(List<String> filesToDeleteOnRollback) {
-        if (filesToDeleteOnRollback == null || filesToDeleteOnRollback.isEmpty()) {
-            return;
-        }
+    private void scheduleDirectoryCleanupOnRollback(Path dirToDeleteOnRollback, List<String> filesToDeleteOnRollback) {
         if (TransactionSynchronizationManager.isActualTransactionActive()) {
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                 @Override
                 public void afterCompletion(int status) {
                     if (status != TransactionSynchronization.STATUS_COMMITTED) {
-                        UploadUtils.deleteFiles(filesToDeleteOnRollback);
+                        if (dirToDeleteOnRollback != null) {
+                            UploadUtils.deleteDirectory(dirToDeleteOnRollback);
+                        } else if (filesToDeleteOnRollback != null && !filesToDeleteOnRollback.isEmpty()) {
+                            UploadUtils.deleteFiles(filesToDeleteOnRollback);
+                        }
                     }
                 }
             });
+        }
+    }
+
+    private void scheduleDirectoryCleanupOnCommit(Path dirToDeleteOnCommit, Path dirToDeleteOnRollback) {
+        if (TransactionSynchronizationManager.isActualTransactionActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCompletion(int status) {
+                    if (status == TransactionSynchronization.STATUS_COMMITTED) {
+                        if (dirToDeleteOnCommit != null) {
+                            UploadUtils.deleteDirectory(dirToDeleteOnCommit);
+                        }
+                    } else {
+                        if (dirToDeleteOnRollback != null) {
+                            UploadUtils.deleteDirectory(dirToDeleteOnRollback);
+                        }
+                    }
+                }
+            });
+        } else {
+            if (dirToDeleteOnCommit != null) {
+                UploadUtils.deleteDirectory(dirToDeleteOnCommit);
+            }
         }
     }
 

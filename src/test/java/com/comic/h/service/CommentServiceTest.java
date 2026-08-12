@@ -57,10 +57,13 @@ public class CommentServiceTest {
         user.setUsername("testuser");
         user.setDisplayName("Test User");
 
+        User uploader = new User();
+        uploader.setUsername("translator1");
+
         comic = Comic.builder()
                 .id(100L)
                 .title("Test Comic")
-                .uploader("translator1")
+                .uploader(uploader)
                 .build();
 
         chapter = Chapter.builder()

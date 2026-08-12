@@ -17,6 +17,7 @@ import com.comic.h.entity.UserComicLibrary;
 import com.comic.h.enums.ShelfStatus;
 import com.comic.h.exception.BadRequestException;
 import com.comic.h.exception.ResourceNotFoundException;
+import com.comic.h.mapper.ReadingHistoryMapper;
 import com.comic.h.repository.ChapterRepository;
 import com.comic.h.repository.ComicRepository;
 import com.comic.h.repository.ReadingHistoryRepository;
@@ -35,6 +36,7 @@ public class ReadingHistoryServiceImpl implements ReadingHistoryService {
     private final ComicRepository comicRepository;
     private final ChapterRepository chapterRepository;
     private final UserRepository userRepository;
+    private final ReadingHistoryMapper readingHistoryMapper;
 
     @Override
     @Transactional
@@ -81,7 +83,7 @@ public class ReadingHistoryServiceImpl implements ReadingHistoryService {
             userComicLibraryRepository.save(library);
         }
 
-        return mapToResponse(saved);
+        return readingHistoryMapper.toResponse(saved);
     }
 
     @Override
@@ -89,7 +91,7 @@ public class ReadingHistoryServiceImpl implements ReadingHistoryService {
     public List<ReadingHistoryResponse> getUserReadingHistory(String username) {
         User user = findUserByUsername(username);
         List<ReadingHistory> histories = readingHistoryRepository.findAllByUserIdOrderByUpdatedAtDesc(user.getUserId());
-        return histories.stream().map(this::mapToResponse).collect(Collectors.toList());
+        return histories.stream().map(readingHistoryMapper::toResponse).collect(Collectors.toList());
     }
 
     @Override
@@ -97,7 +99,7 @@ public class ReadingHistoryServiceImpl implements ReadingHistoryService {
     public ReadingHistoryResponse getProgressByComicId(Long comicId, String username) {
         User user = findUserByUsername(username);
         return readingHistoryRepository.findByUserUserIdAndComicId(user.getUserId(), comicId)
-                .map(this::mapToResponse)
+                .map(readingHistoryMapper::toResponse)
                 .orElse(null);
     }
 
@@ -110,22 +112,5 @@ public class ReadingHistoryServiceImpl implements ReadingHistoryService {
         if (!chapter.getComic().getId().equals(comic.getId())) {
             throw new BadRequestException("Chapter does not belong to the requested comic");
         }
-    }
-
-    private ReadingHistoryResponse mapToResponse(ReadingHistory history) {
-        return ReadingHistoryResponse.builder()
-                .id(history.getId())
-                .comicId(history.getComic().getId())
-                .comicTitle(history.getComic().getTitle())
-                .comicSlug(history.getComic().getSlug())
-                .coverImage(history.getComic().getCoverImage())
-                .chapterId(history.getChapter().getId())
-                .chapterNumber(history.getChapter().getChapterNumber())
-                .chapterTitle(history.getChapter().getTitle())
-                .chapterSlug(history.getChapter().getSlug())
-                .pageNumber(history.getPageNumber())
-                .percentage(history.getPercentage())
-                .updatedAt(history.getUpdatedAt())
-                .build();
     }
 }

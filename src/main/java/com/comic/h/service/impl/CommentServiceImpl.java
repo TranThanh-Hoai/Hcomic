@@ -13,6 +13,7 @@ import com.comic.h.entity.Comment;
 import com.comic.h.entity.User;
 import com.comic.h.exception.ForbiddenException;
 import com.comic.h.exception.ResourceNotFoundException;
+import com.comic.h.mapper.CommentMapper;
 import com.comic.h.repository.ChapterRepository;
 import com.comic.h.repository.ComicRepository;
 import com.comic.h.repository.CommentRepository;
@@ -29,6 +30,7 @@ public class CommentServiceImpl implements CommentService {
     private final ComicRepository comicRepository;
     private final ChapterRepository chapterRepository;
     private final UserRepository userRepository;
+    private final CommentMapper commentMapper;
 
     @Override
     @Transactional
@@ -48,7 +50,7 @@ public class CommentServiceImpl implements CommentService {
                 .build();
 
         Comment savedComment = commentRepository.save(comment);
-        return mapToResponse(savedComment);
+        return commentMapper.toResponse(savedComment);
     }
 
     @Override
@@ -67,7 +69,7 @@ public class CommentServiceImpl implements CommentService {
                 .build();
 
         Comment savedComment = commentRepository.save(comment);
-        return mapToResponse(savedComment);
+        return commentMapper.toResponse(savedComment);
     }
 
     @Override
@@ -77,7 +79,7 @@ public class CommentServiceImpl implements CommentService {
         verifyOwnership(comment, username, "edit");
 
         comment.setContent(request.getContent().trim());
-        return mapToResponse(comment);
+        return commentMapper.toResponse(comment);
     }
 
     @Override
@@ -98,7 +100,7 @@ public class CommentServiceImpl implements CommentService {
 
         List<Comment> comments = commentRepository.findByComicIdAndChapterIsNullOrderByCreatedAtDesc(comicId);
         return comments.stream()
-                .map(this::mapToResponse)
+                .map(commentMapper::toResponse)
                 .toList();
     }
 
@@ -111,7 +113,7 @@ public class CommentServiceImpl implements CommentService {
 
         List<Comment> comments = commentRepository.findByChapterIdOrderByCreatedAtDesc(chapterId);
         return comments.stream()
-                .map(this::mapToResponse)
+                .map(commentMapper::toResponse)
                 .toList();
     }
 
@@ -134,19 +136,5 @@ public class CommentServiceImpl implements CommentService {
         if (!comment.getUser().getUsername().equals(username)) {
             throw new ForbiddenException("You can only " + action + " your own comment");
         }
-    }
-
-    private CommentResponse mapToResponse(Comment comment) {
-        return CommentResponse.builder()
-                .id(comment.getId())
-                .comicId(comment.getComic().getId())
-                .chapterId(comment.getChapter() != null ? comment.getChapter().getId() : null)
-                .userId(comment.getUser().getUserId())
-                .userDisplayName(comment.getUser().getDisplayName())
-                .userAvatar(comment.getUser().getAvatar())
-                .content(comment.getContent())
-                .createdAt(comment.getCreatedAt())
-                .updatedAt(comment.getUpdatedAt())
-                .build();
     }
 }

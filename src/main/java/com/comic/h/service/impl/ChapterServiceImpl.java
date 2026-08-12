@@ -3,7 +3,6 @@ package com.comic.h.service.impl;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -13,13 +12,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.comic.h.dto.request.ChapterRequest;
 import com.comic.h.dto.response.ChapterDetailResponse;
-import com.comic.h.dto.response.ChapterImageResponse;
 import com.comic.h.dto.response.ChapterResponse;
 import com.comic.h.entity.Chapter;
 import com.comic.h.entity.ChapterImage;
 import com.comic.h.entity.Comic;
 import com.comic.h.exception.BadRequestException;
 import com.comic.h.exception.ResourceNotFoundException;
+import com.comic.h.mapper.ChapterMapper;
 import com.comic.h.repository.ChapterRepository;
 import com.comic.h.repository.ComicRepository;
 import com.comic.h.security.ComicSecurityEvaluator;
@@ -39,6 +38,7 @@ public class ChapterServiceImpl implements ChapterService {
     private final ComicRepository comicRepository;
     private final FileStorageService fileStorageService;
     private final ComicSecurityEvaluator comicSecurityEvaluator;
+    private final ChapterMapper chapterMapper;
 
     @Override
     @Transactional
@@ -75,7 +75,7 @@ public class ChapterServiceImpl implements ChapterService {
                 .build();
 
         Chapter savedChapter = chapterRepository.save(chapter);
-        return mapToChapterResponse(savedChapter);
+        return chapterMapper.toResponse(savedChapter);
     }
 
     @Override
@@ -83,7 +83,7 @@ public class ChapterServiceImpl implements ChapterService {
     public ChapterResponse getChapterById(Long chapterId) {
         Chapter chapter = chapterRepository.findById(chapterId)
                 .orElseThrow(() -> new ResourceNotFoundException("Chapter not found with id: " + chapterId));
-        return mapToChapterResponse(chapter);
+        return chapterMapper.toResponse(chapter);
     }
 
     @Override
@@ -101,7 +101,7 @@ public class ChapterServiceImpl implements ChapterService {
         }
 
         return chapters.stream()
-                .map(this::mapToChapterResponse)
+                .map(chapterMapper::toResponse)
                 .toList();
     }
 
@@ -120,7 +120,7 @@ public class ChapterServiceImpl implements ChapterService {
         }
 
         return chapters.stream()
-                .map(this::mapToChapterResponse)
+                .map(chapterMapper::toResponse)
                 .toList();
     }
 
@@ -140,31 +140,11 @@ public class ChapterServiceImpl implements ChapterService {
         Optional<Chapter> nextChapterOpt = chapterRepository
                 .findFirstByComicIdAndChapterNumberGreaterThanOrderByChapterNumberAsc(comic.getId(), chapter.getChapterNumber());
 
-        List<ChapterImageResponse> imageResponses = chapter.getImages().stream()
-                .sorted(Comparator.comparingInt(ChapterImage::getPageNumber))
-                .map(img -> ChapterImageResponse.builder()
-                        .pageNumber(img.getPageNumber())
-                        .imageUrl(img.getImagePath())
-                        .build())
-                .toList();
-
         long updatedViewCount = (chapter.getViewCount() != null ? chapter.getViewCount() : 0L) + 1;
+        String prevSlug = prevChapterOpt.map(Chapter::getSlug).orElse(null);
+        String nextSlug = nextChapterOpt.map(Chapter::getSlug).orElse(null);
 
-        return ChapterDetailResponse.builder()
-                .id(chapter.getId())
-                .comicId(comic.getId())
-                .comicTitle(comic.getTitle())
-                .comicSlug(comic.getSlug())
-                .chapterNumber(chapter.getChapterNumber())
-                .title(chapter.getTitle())
-                .slug(chapter.getSlug())
-                .viewCount(updatedViewCount)
-                .createdAt(chapter.getCreatedAt())
-                .updatedAt(chapter.getUpdatedAt())
-                .images(imageResponses)
-                .prevChapterSlug(prevChapterOpt.map(Chapter::getSlug).orElse(null))
-                .nextChapterSlug(nextChapterOpt.map(Chapter::getSlug).orElse(null))
-                .build();
+        return chapterMapper.toDetailResponse(chapter, prevSlug, nextSlug, updatedViewCount);
     }
 
     @Override
@@ -188,7 +168,7 @@ public class ChapterServiceImpl implements ChapterService {
         }
 
         Chapter updatedChapter = chapterRepository.save(chapter);
-        return mapToChapterResponse(updatedChapter);
+        return chapterMapper.toResponse(updatedChapter);
     }
 
     @Override
@@ -212,21 +192,6 @@ public class ChapterServiceImpl implements ChapterService {
         fileStorageService.scheduleDirectoryCleanupOnCommit(chapterDir.toString().replace('\\', '/'));
 
         chapterRepository.delete(chapter);
-    }
-
-    private ChapterResponse mapToChapterResponse(Chapter chapter) {
-        return ChapterResponse.builder()
-                .id(chapter.getId())
-                .comicId(chapter.getComic().getId())
-                .chapterNumber(chapter.getChapterNumber())
-                .title(chapter.getTitle())
-                .slug(chapter.getSlug())
-                .viewCount(chapter.getViewCount())
-                .imageCount(chapter.getImages() != null ? chapter.getImages().size() : 0)
-                .uploadStatus(chapter.getUploadStatus())
-                .createdAt(chapter.getCreatedAt())
-                .updatedAt(chapter.getUpdatedAt())
-                .build();
     }
 
     private String formatChapterNumber(Double chapterNumber) {

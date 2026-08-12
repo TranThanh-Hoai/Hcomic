@@ -15,6 +15,7 @@ import com.comic.h.entity.User;
 import com.comic.h.entity.UserComicLibrary;
 import com.comic.h.enums.ShelfStatus;
 import com.comic.h.exception.ResourceNotFoundException;
+import com.comic.h.mapper.UserComicLibraryMapper;
 import com.comic.h.repository.ComicRepository;
 import com.comic.h.repository.ReadingHistoryRepository;
 import com.comic.h.repository.UserComicLibraryRepository;
@@ -31,6 +32,7 @@ public class UserComicLibraryServiceImpl implements UserComicLibraryService {
     private final ReadingHistoryRepository readingHistoryRepository;
     private final ComicRepository comicRepository;
     private final UserRepository userRepository;
+    private final UserComicLibraryMapper userComicLibraryMapper;
 
     @Override
     @Transactional
@@ -90,21 +92,6 @@ public class UserComicLibraryServiceImpl implements UserComicLibraryService {
         Optional<ReadingHistory> historyOpt = readingHistoryRepository.findByUserUserIdAndComicId(
                 library.getUser().getUserId(), library.getComic().getId());
 
-        return UserComicLibraryResponse.builder()
-                .id(library.getId())
-                .comicId(library.getComic().getId())
-                .comicTitle(library.getComic().getTitle())
-                .comicSlug(library.getComic().getSlug())
-                .coverImage(library.getComic().getCoverImage())
-                .author(library.getComic().getAuthor())
-                .comicStatus(library.getComic().getStatus())
-                .status(library.getStatus())
-                .lastReadChapterId(historyOpt.map(h -> h.getChapter().getId()).orElse(null))
-                .lastReadChapterNumber(historyOpt.map(h -> h.getChapter().getChapterNumber()).orElse(null))
-                .lastReadChapterSlug(historyOpt.map(h -> h.getChapter().getSlug()).orElse(null))
-                .lastReadPageNumber(historyOpt.map(ReadingHistory::getPageNumber).orElse(null))
-                .lastReadPercentage(historyOpt.map(ReadingHistory::getPercentage).orElse(null))
-                .updatedAt(library.getUpdatedAt())
-                .build();
+        return userComicLibraryMapper.toResponse(library, historyOpt.orElse(null));
     }
 }

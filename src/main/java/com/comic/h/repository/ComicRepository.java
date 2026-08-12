@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -22,6 +23,8 @@ public interface ComicRepository extends JpaRepository<Comic, Long> {
     boolean existsByTitle(String title);
 
     List<Comic> findByUploaderUsernameOrderByCreatedAtDesc(String username);
+
+    Page<Comic> findByUploaderUsername(String username, Pageable pageable);
 
     List<Comic> findByUploader(User uploader);
 

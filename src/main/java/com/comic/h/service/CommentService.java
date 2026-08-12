@@ -1,9 +1,10 @@
 package com.comic.h.service;
 
-import java.util.List;
+import org.springframework.data.domain.Pageable;
 
 import com.comic.h.dto.request.CommentRequest;
 import com.comic.h.dto.response.CommentResponse;
+import com.comic.h.dto.response.PageResponse;
 
 public interface CommentService {
 
@@ -15,7 +16,7 @@ public interface CommentService {
 
     void deleteComment(Long commentId, String username);
 
-    List<CommentResponse> getCommentsByComicId(Long comicId);
+    PageResponse<CommentResponse> getCommentsByComicId(Long comicId, Pageable pageable);
 
-    List<CommentResponse> getCommentsByChapterId(Long chapterId);
+    PageResponse<CommentResponse> getCommentsByChapterId(Long chapterId, Pageable pageable);
 }

@@ -69,7 +69,7 @@ public class Chapter {
 
     @Builder.Default
     @Column(name = "upload_status")
-    private String uploadStatus = "PENDING";
+    private String uploadStatus = "APPROVED";
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

@@ -11,9 +11,10 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.comic.h.dto.request.ChapterRequest;
 import com.comic.h.dto.response.ChapterDetailResponse;
@@ -30,11 +31,12 @@ public class ChapterController {
     private final ChapterService chapterService;
 
     @PreAuthorize("hasAnyRole('TRANSLATOR', 'ADMIN')")
-    @PostMapping(value = "/api/comics/{comicId}/chapters", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(value = "/api/comics/{comicId}/chapters", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ChapterResponse> createChapter(
             @PathVariable Long comicId,
-            @Valid @RequestBody ChapterRequest request) {
-        ChapterResponse response = chapterService.createChapter(comicId, request);
+            @Valid @RequestPart("request") ChapterRequest request,
+            @RequestPart("images") List<MultipartFile> images) {
+        ChapterResponse response = chapterService.createChapter(comicId, request, images);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
@@ -59,17 +61,13 @@ public class ChapterController {
         return ResponseEntity.ok(chapterService.getChaptersByComicId(comicId, sort));
     }
 
-    @GetMapping("/api/chapters/{chapterId}/status")
-    public ResponseEntity<ChapterResponse> getChapterStatus(@PathVariable Long chapterId) {
-        return ResponseEntity.ok(chapterService.getChapterById(chapterId));
-    }
-
     @PreAuthorize("hasAnyRole('TRANSLATOR', 'ADMIN')")
-    @PutMapping("/api/chapters/{chapterId}")
+    @PutMapping(value = "/api/chapters/{chapterId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ChapterResponse> updateChapter(
             @PathVariable Long chapterId,
-            @Valid @RequestBody ChapterRequest request) {
-        return ResponseEntity.ok(chapterService.updateChapter(chapterId, request));
+            @Valid @RequestPart("request") ChapterRequest request,
+            @RequestPart(value = "images", required = false) List<MultipartFile> images) {
+        return ResponseEntity.ok(chapterService.updateChapter(chapterId, request, images));
     }
 
     @PreAuthorize("hasAnyRole('TRANSLATOR', 'ADMIN')")

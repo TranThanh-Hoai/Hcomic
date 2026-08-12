@@ -67,10 +67,6 @@ public class Chapter {
     @Column(name = "view_count")
     private Long viewCount = 0L;
 
-    @Builder.Default
-    @Column(name = "upload_status")
-    private String uploadStatus = "PENDING";
-
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

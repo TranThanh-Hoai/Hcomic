@@ -8,8 +8,13 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.comic.h.dto.request.ChapterRequest;
 import com.comic.h.dto.response.ChapterDetailResponse;
@@ -19,12 +24,12 @@ import com.comic.h.entity.Chapter;
 import com.comic.h.entity.ChapterImage;
 import com.comic.h.entity.Comic;
 import com.comic.h.exception.BadRequestException;
+import com.comic.h.exception.ForbiddenException;
 import com.comic.h.exception.ResourceNotFoundException;
 import com.comic.h.repository.ChapterRepository;
 import com.comic.h.repository.ComicRepository;
-import com.comic.h.security.ComicSecurityEvaluator;
 import com.comic.h.service.ChapterService;
-import com.comic.h.service.FileStorageService;
+import com.comic.h.util.UploadUtils;
 
 import lombok.RequiredArgsConstructor;
 
@@ -37,16 +42,14 @@ public class ChapterServiceImpl implements ChapterService {
 
     private final ChapterRepository chapterRepository;
     private final ComicRepository comicRepository;
-    private final FileStorageService fileStorageService;
-    private final ComicSecurityEvaluator comicSecurityEvaluator;
 
     @Override
     @Transactional
-    public ChapterResponse createChapter(Long comicId, ChapterRequest request) {
+    public ChapterResponse createChapter(Long comicId, ChapterRequest request, List<MultipartFile> images) {
         Comic comic = comicRepository.findById(comicId)
                 .orElseThrow(() -> new ResourceNotFoundException("Comic not found with id: " + comicId));
 
-        comicSecurityEvaluator.verifyOwnership(comic);
+        verifyComicOwnership(comic);
 
         if (request.getChapterNumber() == null) {
             throw new BadRequestException("Chapter number is required");
@@ -54,6 +57,10 @@ public class ChapterServiceImpl implements ChapterService {
 
         if (chapterRepository.existsByComicIdAndChapterNumber(comicId, request.getChapterNumber())) {
             throw new BadRequestException("Chapter number " + formatChapterNumber(request.getChapterNumber()) + " already exists for this comic");
+        }
+
+        if (images == null || images.isEmpty()) {
+            throw new BadRequestException("Chapter images cannot be empty");
         }
 
         String chapterNumStr = formatChapterNumber(request.getChapterNumber());
@@ -64,26 +71,47 @@ public class ChapterServiceImpl implements ChapterService {
             title = "Chương " + chapterNumStr;
         }
 
-        Chapter chapter = Chapter.builder()
-                .comic(comic)
-                .chapterNumber(request.getChapterNumber())
-                .title(title)
-                .slug(slug)
-                .viewCount(0L)
-                .uploadStatus("PENDING")
-                .images(new ArrayList<>())
-                .build();
+        String comicSlug = comic.getSlug();
+        String timestamp = String.valueOf(System.currentTimeMillis() / 1000L);
+        String chapterDirName = comicSlug + "-chapter-" + chapterNumStr + "-" + timestamp;
+        Path chapterDir = Paths.get(comicUploadDir, comicSlug, chapterDirName);
 
-        Chapter savedChapter = chapterRepository.save(chapter);
-        return mapToChapterResponse(savedChapter);
-    }
+        List<String> savedPaths;
+        try {
+            savedPaths = UploadUtils.saveFiles(images, chapterDir, comicSlug);
+        } catch (Exception e) {
+            throw new BadRequestException("Failed to save chapter images: " + e.getMessage());
+        }
 
-    @Override
-    @Transactional(readOnly = true)
-    public ChapterResponse getChapterById(Long chapterId) {
-        Chapter chapter = chapterRepository.findById(chapterId)
-                .orElseThrow(() -> new ResourceNotFoundException("Chapter not found with id: " + chapterId));
-        return mapToChapterResponse(chapter);
+        scheduleDirectoryCleanupOnRollback(chapterDir, savedPaths);
+
+        try {
+            Chapter chapter = Chapter.builder()
+                    .comic(comic)
+                    .chapterNumber(request.getChapterNumber())
+                    .title(title)
+                    .slug(slug)
+                    .viewCount(0L)
+                    .images(new ArrayList<>())
+                    .build();
+
+            int pageNum = 1;
+            for (String savedPath : savedPaths) {
+                ChapterImage image = ChapterImage.builder()
+                        .imagePath(savedPath)
+                        .pageNumber(pageNum++)
+                        .build();
+                chapter.addImage(image);
+            }
+
+            Chapter savedChapter = chapterRepository.save(chapter);
+            return mapToChapterResponse(savedChapter);
+        } catch (RuntimeException e) {
+            if (!TransactionSynchronizationManager.isActualTransactionActive()) {
+                UploadUtils.deleteDirectory(chapterDir);
+            }
+            throw e;
+        }
     }
 
     @Override
@@ -131,9 +159,9 @@ public class ChapterServiceImpl implements ChapterService {
                 .orElseThrow(() -> new ResourceNotFoundException("Chapter not found with slug: " + chapterSlug + " for comic: " + comicSlug));
 
         chapterRepository.incrementViewCount(chapter.getId());
+        chapter.setViewCount(chapter.getViewCount() + 1);
 
         Comic comic = chapter.getComic();
-        comicRepository.incrementViewCount(comic.getId());
 
         Optional<Chapter> prevChapterOpt = chapterRepository
                 .findFirstByComicIdAndChapterNumberLessThanOrderByChapterNumberDesc(comic.getId(), chapter.getChapterNumber());
@@ -143,12 +171,11 @@ public class ChapterServiceImpl implements ChapterService {
         List<ChapterImageResponse> imageResponses = chapter.getImages().stream()
                 .sorted(Comparator.comparingInt(ChapterImage::getPageNumber))
                 .map(img -> ChapterImageResponse.builder()
+                        .id(img.getId())
                         .pageNumber(img.getPageNumber())
-                        .imageUrl(img.getImagePath())
+                        .imagePath(img.getImagePath())
                         .build())
                 .toList();
-
-        long updatedViewCount = (chapter.getViewCount() != null ? chapter.getViewCount() : 0L) + 1;
 
         return ChapterDetailResponse.builder()
                 .id(chapter.getId())
@@ -158,7 +185,7 @@ public class ChapterServiceImpl implements ChapterService {
                 .chapterNumber(chapter.getChapterNumber())
                 .title(chapter.getTitle())
                 .slug(chapter.getSlug())
-                .viewCount(updatedViewCount)
+                .viewCount(chapter.getViewCount())
                 .createdAt(chapter.getCreatedAt())
                 .updatedAt(chapter.getUpdatedAt())
                 .images(imageResponses)
@@ -169,11 +196,11 @@ public class ChapterServiceImpl implements ChapterService {
 
     @Override
     @Transactional
-    public ChapterResponse updateChapter(Long chapterId, ChapterRequest request) {
+    public ChapterResponse updateChapter(Long chapterId, ChapterRequest request, List<MultipartFile> images) {
         Chapter chapter = chapterRepository.findById(chapterId)
                 .orElseThrow(() -> new ResourceNotFoundException("Chapter not found with id: " + chapterId));
 
-        comicSecurityEvaluator.verifyOwnership(chapter.getComic());
+        verifyComicOwnership(chapter.getComic());
 
         if (request.getChapterNumber() != null && !request.getChapterNumber().equals(chapter.getChapterNumber())) {
             if (chapterRepository.existsByComicIdAndChapterNumberAndIdNot(chapter.getComic().getId(), request.getChapterNumber(), chapterId)) {
@@ -187,8 +214,63 @@ public class ChapterServiceImpl implements ChapterService {
             chapter.setTitle(request.getTitle());
         }
 
-        Chapter updatedChapter = chapterRepository.save(chapter);
-        return mapToChapterResponse(updatedChapter);
+        List<String> newPaths = null;
+        Path newChapterDir = null;
+        Path oldChapterDir = null;
+
+        if (images != null && !images.isEmpty()) {
+            if (chapter.getImages() != null && !chapter.getImages().isEmpty()) {
+                String firstOldPath = chapter.getImages().get(0).getImagePath();
+                if (firstOldPath != null) {
+                    oldChapterDir = Paths.get(firstOldPath).getParent();
+                }
+            }
+
+            List<String> oldPaths = chapter.getImages().stream()
+                    .map(ChapterImage::getImagePath)
+                    .toList();
+
+            String comicSlug = chapter.getComic().getSlug();
+            String timestamp = String.valueOf(System.currentTimeMillis() / 1000L);
+            String chapterDirName = comicSlug + "-chapter-" + formatChapterNumber(chapter.getChapterNumber()) + "-" + timestamp;
+            newChapterDir = Paths.get(comicUploadDir, comicSlug, chapterDirName);
+
+            try {
+                newPaths = UploadUtils.saveFiles(images, newChapterDir, comicSlug);
+            } catch (Exception e) {
+                throw new BadRequestException("Failed to save new chapter images: " + e.getMessage());
+            }
+
+            scheduleFileCleanupOnCommit(oldPaths, newPaths);
+            if (oldChapterDir != null) {
+                scheduleDirectoryCleanupOnCommit(oldChapterDir, newChapterDir);
+            }
+
+            chapter.clearImages();
+
+            int pageNum = 1;
+            for (String newPath : newPaths) {
+                ChapterImage image = ChapterImage.builder()
+                        .imagePath(newPath)
+                        .pageNumber(pageNum++)
+                        .build();
+                chapter.addImage(image);
+            }
+        }
+
+        try {
+            Chapter updatedChapter = chapterRepository.save(chapter);
+            return mapToChapterResponse(updatedChapter);
+        } catch (RuntimeException e) {
+            if (!TransactionSynchronizationManager.isActualTransactionActive()) {
+                if (newChapterDir != null) {
+                    UploadUtils.deleteDirectory(newChapterDir);
+                } else if (newPaths != null) {
+                    UploadUtils.deleteFiles(newPaths);
+                }
+            }
+            throw e;
+        }
     }
 
     @Override
@@ -197,21 +279,108 @@ public class ChapterServiceImpl implements ChapterService {
         Chapter chapter = chapterRepository.findById(chapterId)
                 .orElseThrow(() -> new ResourceNotFoundException("Chapter not found with id: " + chapterId));
 
-        comicSecurityEvaluator.verifyOwnership(chapter.getComic());
+        verifyComicOwnership(chapter.getComic());
 
-        List<String> filePaths = chapter.getImages() != null ? chapter.getImages().stream()
+        List<String> filePaths = chapter.getImages().stream()
                 .map(ChapterImage::getImagePath)
-                .toList() : List.of();
+                .toList();
 
-        Comic comic = chapter.getComic();
-        String chapterNumStr = formatChapterNumber(chapter.getChapterNumber());
-        String chapterDirName = comic.getSlug() + "-chapter-" + chapterNumStr;
-        Path chapterDir = Paths.get(comicUploadDir, comic.getSlug(), chapterDirName);
+        Path chapterDir = null;
+        if (chapter.getImages() != null && !chapter.getImages().isEmpty()) {
+            String firstPath = chapter.getImages().get(0).getImagePath();
+            if (firstPath != null) {
+                chapterDir = Paths.get(firstPath).getParent();
+            }
+        }
 
-        fileStorageService.scheduleFileCleanupOnCommit(filePaths, null);
-        fileStorageService.scheduleDirectoryCleanupOnCommit(chapterDir.toString().replace('\\', '/'));
+        scheduleFileCleanupOnCommit(filePaths, null);
+        if (chapterDir != null) {
+            scheduleDirectoryCleanupOnCommit(chapterDir, null);
+        }
 
         chapterRepository.delete(chapter);
+    }
+
+    private void verifyComicOwnership(Comic comic) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new ForbiddenException("User is not authenticated");
+        }
+
+        boolean isAdmin = authentication.getAuthorities().stream()
+                .anyMatch(grantedAuthority -> grantedAuthority.getAuthority().equals("ROLE_ADMIN"));
+
+        if (isAdmin) {
+            return;
+        }
+
+        String currentUsername = authentication.getName();
+        if (comic.getUploader() == null || comic.getUploader().getUsername() == null || !comic.getUploader().getUsername().equalsIgnoreCase(currentUsername)) {
+            throw new ForbiddenException("You do not have permission to modify chapters for this comic");
+        }
+    }
+
+    private void scheduleDirectoryCleanupOnRollback(Path dirToDeleteOnRollback, List<String> filesToDeleteOnRollback) {
+        if (TransactionSynchronizationManager.isActualTransactionActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCompletion(int status) {
+                    if (status != TransactionSynchronization.STATUS_COMMITTED) {
+                        if (dirToDeleteOnRollback != null) {
+                            UploadUtils.deleteDirectory(dirToDeleteOnRollback);
+                        } else if (filesToDeleteOnRollback != null && !filesToDeleteOnRollback.isEmpty()) {
+                            UploadUtils.deleteFiles(filesToDeleteOnRollback);
+                        }
+                    }
+                }
+            });
+        }
+    }
+
+    private void scheduleDirectoryCleanupOnCommit(Path dirToDeleteOnCommit, Path dirToDeleteOnRollback) {
+        if (TransactionSynchronizationManager.isActualTransactionActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCompletion(int status) {
+                    if (status == TransactionSynchronization.STATUS_COMMITTED) {
+                        if (dirToDeleteOnCommit != null) {
+                            UploadUtils.deleteDirectory(dirToDeleteOnCommit);
+                        }
+                    } else {
+                        if (dirToDeleteOnRollback != null) {
+                            UploadUtils.deleteDirectory(dirToDeleteOnRollback);
+                        }
+                    }
+                }
+            });
+        } else {
+            if (dirToDeleteOnCommit != null) {
+                UploadUtils.deleteDirectory(dirToDeleteOnCommit);
+            }
+        }
+    }
+
+    private void scheduleFileCleanupOnCommit(List<String> filesToDeleteOnCommit, List<String> filesToDeleteOnRollback) {
+        if (TransactionSynchronizationManager.isActualTransactionActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCompletion(int status) {
+                    if (status == TransactionSynchronization.STATUS_COMMITTED) {
+                        if (filesToDeleteOnCommit != null && !filesToDeleteOnCommit.isEmpty()) {
+                            UploadUtils.deleteFiles(filesToDeleteOnCommit);
+                        }
+                    } else {
+                        if (filesToDeleteOnRollback != null && !filesToDeleteOnRollback.isEmpty()) {
+                            UploadUtils.deleteFiles(filesToDeleteOnRollback);
+                        }
+                    }
+                }
+            });
+        } else {
+            if (filesToDeleteOnCommit != null && !filesToDeleteOnCommit.isEmpty()) {
+                UploadUtils.deleteFiles(filesToDeleteOnCommit);
+            }
+        }
     }
 
     private ChapterResponse mapToChapterResponse(Chapter chapter) {
@@ -223,7 +392,6 @@ public class ChapterServiceImpl implements ChapterService {
                 .slug(chapter.getSlug())
                 .viewCount(chapter.getViewCount())
                 .imageCount(chapter.getImages() != null ? chapter.getImages().size() : 0)
-                .uploadStatus(chapter.getUploadStatus())
                 .createdAt(chapter.getCreatedAt())
                 .updatedAt(chapter.getUpdatedAt())
                 .build();

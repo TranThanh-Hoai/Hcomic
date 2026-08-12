@@ -22,7 +22,6 @@ public class ChapterResponse {
     private String slug;
     private Long viewCount;
     private Integer imageCount;
-    private String uploadStatus;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

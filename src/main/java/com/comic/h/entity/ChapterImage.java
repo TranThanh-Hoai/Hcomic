@@ -11,6 +11,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -23,7 +24,12 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Table(name = "chapter_images")
+@Table(
+    name = "chapter_images",
+    uniqueConstraints = {
+        @UniqueConstraint(name = "uk_chapter_image_page", columnNames = {"chapter_id", "page_number"})
+    }
+)
 public class ChapterImage {
 
     @Id

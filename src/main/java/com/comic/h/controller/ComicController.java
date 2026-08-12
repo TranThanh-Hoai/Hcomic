@@ -24,7 +24,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/api/comic")
+@RequestMapping({"/api/comics"})
 @RequiredArgsConstructor
 public class ComicController {
 
@@ -54,11 +54,12 @@ public class ComicController {
         return ResponseEntity.ok(comicService.getComicBySlug(slug));
     }
 
-    @PreAuthorize("hasRole('TRANSLATOR')")
+    @PreAuthorize("hasAnyRole('TRANSLATOR', 'ADMIN')")
     @GetMapping("/my-comics")
     public ResponseEntity<List<ComicResponse>> getMyComics() {
         return ResponseEntity.ok(comicService.getMyComics());
     }
+
 
     @GetMapping("/uploader/{uploader}")
     public ResponseEntity<List<ComicResponse>> getComicsByUploader(@PathVariable String uploader) {

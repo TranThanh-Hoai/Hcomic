@@ -1,17 +1,17 @@
 package com.comic.h.service;
 
-import java.util.List;
-
+import org.springframework.data.domain.Pageable;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.comic.h.dto.request.ComicRequest;
 import com.comic.h.dto.response.ComicResponse;
+import com.comic.h.dto.response.PageResponse;
 
 public interface ComicService {
 
     ComicResponse createComic(ComicRequest request, MultipartFile cover);
 
-    List<ComicResponse> getAllComics();
+    PageResponse<ComicResponse> getAllComics(Pageable pageable);
 
     ComicResponse getComicById(Long id);
 
@@ -21,9 +21,9 @@ public interface ComicService {
 
     void deleteComic(Long id);
 
-    List<ComicResponse> getMyComics();
+    PageResponse<ComicResponse> getMyComics(Pageable pageable);
 
-    List<ComicResponse> getComicsByUploader(String uploader);
+    PageResponse<ComicResponse> getComicsByUploader(String uploader, Pageable pageable);
 }
 
 

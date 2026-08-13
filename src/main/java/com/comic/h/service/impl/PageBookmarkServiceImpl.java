@@ -16,6 +16,7 @@ import com.comic.h.entity.User;
 import com.comic.h.exception.BadRequestException;
 import com.comic.h.exception.ForbiddenException;
 import com.comic.h.exception.ResourceNotFoundException;
+import com.comic.h.mapper.PageBookmarkMapper;
 import com.comic.h.repository.ChapterRepository;
 import com.comic.h.repository.ComicRepository;
 import com.comic.h.repository.PageBookmarkRepository;
@@ -32,6 +33,7 @@ public class PageBookmarkServiceImpl implements PageBookmarkService {
     private final ComicRepository comicRepository;
     private final ChapterRepository chapterRepository;
     private final UserRepository userRepository;
+    private final PageBookmarkMapper pageBookmarkMapper;
 
     @Override
     @Transactional
@@ -63,7 +65,7 @@ public class PageBookmarkServiceImpl implements PageBookmarkService {
         }
 
         PageBookmark saved = pageBookmarkRepository.save(bookmark);
-        return mapToResponse(saved);
+        return pageBookmarkMapper.toResponse(saved);
     }
 
     @Override
@@ -71,7 +73,7 @@ public class PageBookmarkServiceImpl implements PageBookmarkService {
     public List<PageBookmarkResponse> getBookmarksByComic(Long comicId, String username) {
         User user = findUserByUsername(username);
         return pageBookmarkRepository.findByUserUserIdAndComicIdOrderByCreatedAtDesc(user.getUserId(), comicId)
-                .stream().map(this::mapToResponse).collect(Collectors.toList());
+                .stream().map(pageBookmarkMapper::toResponse).collect(Collectors.toList());
     }
 
     @Override
@@ -79,7 +81,7 @@ public class PageBookmarkServiceImpl implements PageBookmarkService {
     public List<PageBookmarkResponse> getBookmarksByChapter(Long chapterId, String username) {
         User user = findUserByUsername(username);
         return pageBookmarkRepository.findByUserUserIdAndChapterIdOrderByPageNumberAsc(user.getUserId(), chapterId)
-                .stream().map(this::mapToResponse).collect(Collectors.toList());
+                .stream().map(pageBookmarkMapper::toResponse).collect(Collectors.toList());
     }
 
     @Override
@@ -87,7 +89,7 @@ public class PageBookmarkServiceImpl implements PageBookmarkService {
     public List<PageBookmarkResponse> getUserBookmarks(String username) {
         User user = findUserByUsername(username);
         return pageBookmarkRepository.findAllByUserIdOrderByCreatedAtDesc(user.getUserId())
-                .stream().map(this::mapToResponse).collect(Collectors.toList());
+                .stream().map(pageBookmarkMapper::toResponse).collect(Collectors.toList());
     }
 
     @Override
@@ -113,21 +115,5 @@ public class PageBookmarkServiceImpl implements PageBookmarkService {
         if (!chapter.getComic().getId().equals(comic.getId())) {
             throw new BadRequestException("Chapter does not belong to the requested comic");
         }
-    }
-
-    private PageBookmarkResponse mapToResponse(PageBookmark bookmark) {
-        return PageBookmarkResponse.builder()
-                .id(bookmark.getId())
-                .comicId(bookmark.getComic().getId())
-                .comicTitle(bookmark.getComic().getTitle())
-                .comicSlug(bookmark.getComic().getSlug())
-                .chapterId(bookmark.getChapter().getId())
-                .chapterNumber(bookmark.getChapter().getChapterNumber())
-                .chapterTitle(bookmark.getChapter().getTitle())
-                .chapterSlug(bookmark.getChapter().getSlug())
-                .pageNumber(bookmark.getPageNumber())
-                .note(bookmark.getNote())
-                .createdAt(bookmark.getCreatedAt())
-                .build();
     }
 }

@@ -4,6 +4,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -14,11 +16,13 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.comic.h.dto.request.ComicRequest;
 import com.comic.h.dto.response.ComicResponse;
+import com.comic.h.dto.response.PageResponse;
 import com.comic.h.entity.Comic;
 import com.comic.h.entity.User;
 import com.comic.h.enums.ComicStatus;
 import com.comic.h.exception.ForbiddenException;
 import com.comic.h.exception.ResourceNotFoundException;
+import com.comic.h.mapper.ComicMapper;
 import com.comic.h.repository.ChapterImageRepository;
 import com.comic.h.repository.ComicRepository;
 import com.comic.h.repository.UserRepository;
@@ -43,6 +47,7 @@ public class ComicServiceImpl implements ComicService {
     private final FileStorageService fileStorageService;
     private final ImageProcessor imageProcessor;
     private final ComicSecurityEvaluator comicSecurityEvaluator;
+    private final ComicMapper comicMapper;
 
     @Override
     @Transactional
@@ -74,16 +79,15 @@ public class ComicServiceImpl implements ComicService {
                 .build();
 
         Comic savedComic = comicRepository.save(comic);
-        return mapToResponse(savedComic);
+        return comicMapper.toResponse(savedComic);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<ComicResponse> getAllComics() {
-        return comicRepository.findAll()
-                .stream()
-                .map(this::mapToResponse)
-                .toList();
+    public PageResponse<ComicResponse> getAllComics(Pageable pageable) {
+        Page<Comic> page = comicRepository.findAll(pageable);
+        Page<ComicResponse> responsePage = page.map(comicMapper::toResponse);
+        return PageResponse.from(responsePage);
     }
 
     @Override
@@ -91,7 +95,7 @@ public class ComicServiceImpl implements ComicService {
     public ComicResponse getComicById(Long id) {
         Comic comic = comicRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Comic not found with id: " + id));
-        return mapToResponse(comic);
+        return comicMapper.toResponse(comic);
     }
 
     @Override
@@ -99,7 +103,7 @@ public class ComicServiceImpl implements ComicService {
     public ComicResponse getComicBySlug(String slug) {
         Comic comic = comicRepository.findBySlug(slug)
                 .orElseThrow(() -> new ResourceNotFoundException("Comic not found with slug: " + slug));
-        return mapToResponse(comic);
+        return comicMapper.toResponse(comic);
     }
 
     @Override
@@ -164,7 +168,7 @@ public class ComicServiceImpl implements ComicService {
 
         try {
             Comic savedComic = comicRepository.save(comic);
-            return mapToResponse(savedComic);
+            return comicMapper.toResponse(savedComic);
         } catch (RuntimeException e) {
             if (!TransactionSynchronizationManager.isActualTransactionActive() && newCoverPath != null) {
                 fileStorageService.deleteFile(newCoverPath);
@@ -193,22 +197,21 @@ public class ComicServiceImpl implements ComicService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<ComicResponse> getMyComics() {
+    public PageResponse<ComicResponse> getMyComics(Pageable pageable) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {
             throw new ForbiddenException("User is not authenticated");
         }
         String currentUsername = authentication.getName();
-        return getComicsByUploader(currentUsername);
+        return getComicsByUploader(currentUsername, pageable);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<ComicResponse> getComicsByUploader(String uploader) {
-        return comicRepository.findByUploaderUsernameOrderByCreatedAtDesc(uploader)
-                .stream()
-                .map(this::mapToResponse)
-                .toList();
+    public PageResponse<ComicResponse> getComicsByUploader(String uploader, Pageable pageable) {
+        Page<Comic> page = comicRepository.findByUploaderUsername(uploader, pageable);
+        Page<ComicResponse> responsePage = page.map(comicMapper::toResponse);
+        return PageResponse.from(responsePage);
     }
 
     @Transactional
@@ -235,24 +238,5 @@ public class ComicServiceImpl implements ComicService {
         } catch (Exception e) {
             throw new RuntimeException("Failed to upload comic cover image: " + e.getMessage(), e);
         }
-    }
-
-    private ComicResponse mapToResponse(Comic comic) {
-        String uploaderUsername = comic.getUploader() != null ? comic.getUploader().getUsername() : null;
-        return ComicResponse.builder()
-                .id(comic.getId())
-                .title(comic.getTitle())
-                .slug(comic.getSlug())
-                .description(comic.getDescription())
-                .author(comic.getAuthor())
-                .uploader(uploaderUsername)
-                .coverImage(comic.getCoverImage())
-                .viewCount(comic.getViewCount())
-                .likeCount(comic.getLikeCount())
-                .rating(comic.getAvgRating())
-                .status(comic.getStatus())
-                .createdAt(comic.getCreatedAt())
-                .updatedAt(comic.getUpdatedAt())
-                .build();
     }
 }

@@ -20,6 +20,7 @@ import com.comic.h.enums.ReportAction;
 import com.comic.h.enums.ReportStatus;
 import com.comic.h.enums.ReportType;
 import com.comic.h.exception.ResourceNotFoundException;
+import com.comic.h.mapper.ReportMapper;
 import com.comic.h.repository.ChapterRepository;
 import com.comic.h.repository.ComicRepository;
 import com.comic.h.repository.CommentRepository;
@@ -39,6 +40,7 @@ public class ReportService {
     private final ChapterRepository chapterRepository;
     private final ComicRepository comicRepository;
     private final AdminUserService adminUserService;
+    private final ReportMapper reportMapper;
 
     public ReportResponse createReport(ReportCreateRequest request) {
         User currentUser = getCurrentUser();
@@ -155,20 +157,6 @@ public class ReportService {
             // fallback
         }
 
-        return ReportResponse.builder()
-                .id(report.getId())
-                .reporterId(report.getReporter() != null ? report.getReporter().getUserId() : null)
-                .reporterUsername(report.getReporter() != null ? report.getReporter().getUsername() : null)
-                .reportType(report.getReportType())
-                .targetId(report.getTargetId())
-                .targetTitle(targetTitle)
-                .reason(report.getReason())
-                .description(report.getDescription())
-                .status(report.getStatus())
-                .handledByUsername(report.getHandledBy() != null ? report.getHandledBy().getUsername() : null)
-                .resolutionNote(report.getResolutionNote())
-                .createdAt(report.getCreatedAt())
-                .updatedAt(report.getUpdatedAt())
-                .build();
+        return reportMapper.toResponse(report, targetTitle);
     }
 }

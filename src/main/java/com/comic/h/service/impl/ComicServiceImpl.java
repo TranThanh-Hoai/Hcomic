@@ -4,6 +4,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -14,6 +16,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.comic.h.dto.request.ComicRequest;
 import com.comic.h.dto.response.ComicResponse;
+import com.comic.h.dto.response.PageResponse;
 import com.comic.h.entity.Comic;
 import com.comic.h.entity.User;
 import com.comic.h.enums.ComicStatus;
@@ -81,11 +84,10 @@ public class ComicServiceImpl implements ComicService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<ComicResponse> getAllComics() {
-        return comicRepository.findAll()
-                .stream()
-                .map(comicMapper::toResponse)
-                .toList();
+    public PageResponse<ComicResponse> getAllComics(Pageable pageable) {
+        Page<Comic> page = comicRepository.findAll(pageable);
+        Page<ComicResponse> responsePage = page.map(comicMapper::toResponse);
+        return PageResponse.from(responsePage);
     }
 
     @Override
@@ -195,22 +197,21 @@ public class ComicServiceImpl implements ComicService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<ComicResponse> getMyComics() {
+    public PageResponse<ComicResponse> getMyComics(Pageable pageable) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {
             throw new ForbiddenException("User is not authenticated");
         }
         String currentUsername = authentication.getName();
-        return getComicsByUploader(currentUsername);
+        return getComicsByUploader(currentUsername, pageable);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<ComicResponse> getComicsByUploader(String uploader) {
-        return comicRepository.findByUploaderUsernameOrderByCreatedAtDesc(uploader)
-                .stream()
-                .map(comicMapper::toResponse)
-                .toList();
+    public PageResponse<ComicResponse> getComicsByUploader(String uploader, Pageable pageable) {
+        Page<Comic> page = comicRepository.findByUploaderUsername(uploader, pageable);
+        Page<ComicResponse> responsePage = page.map(comicMapper::toResponse);
+        return PageResponse.from(responsePage);
     }
 
     @Transactional

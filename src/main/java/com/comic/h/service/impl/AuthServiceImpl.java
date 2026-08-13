@@ -6,11 +6,15 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.comic.h.dto.request.LoginRequest;
+import com.comic.h.dto.request.LogoutRequest;
+import com.comic.h.dto.request.RefreshTokenRequest;
 import com.comic.h.dto.request.RegisterRequest;
 import com.comic.h.dto.response.AuthResponse;
 import com.comic.h.dto.response.RegisterResponse;
+import com.comic.h.entity.RefreshToken;
 import com.comic.h.entity.User;
 import com.comic.h.enums.Role;
 import com.comic.h.exception.BadRequestException;
@@ -18,6 +22,7 @@ import com.comic.h.exception.ResourceNotFoundException;
 import com.comic.h.repository.UserRepository;
 import com.comic.h.security.JwtTokenProvider;
 import com.comic.h.service.AuthService;
+import com.comic.h.service.RefreshTokenService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -29,6 +34,7 @@ public class AuthServiceImpl implements AuthService {
         private final PasswordEncoder passwordEncoder;
         private final AuthenticationManager authenticationManager;
         private final JwtTokenProvider jwtTokenProvider;
+        private final RefreshTokenService refreshTokenService;
 
         @Override
         public RegisterResponse register(RegisterRequest userRequest) {
@@ -51,6 +57,7 @@ public class AuthServiceImpl implements AuthService {
         }
 
         @Override
+        @Transactional
         public AuthResponse login(LoginRequest userRequest) {
                 Authentication authentication = authenticationManager.authenticate(
                                 new UsernamePasswordAuthenticationToken(
@@ -59,17 +66,51 @@ public class AuthServiceImpl implements AuthService {
 
                 SecurityContextHolder.getContext().setAuthentication(authentication);
 
-                String token = jwtTokenProvider.generateToken(authentication);
-
                 User user = userRepository.findByUsername(userRequest.getUsername())
                                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
+                String accessToken = jwtTokenProvider.generateToken(authentication);
+                RefreshToken refreshToken = refreshTokenService.createRefreshToken(user);
+
                 return AuthResponse.builder()
                                 .message("Welcome! " + user.getUsername())
-                                .accessToken(token)
+                                .accessToken(accessToken)
+                                .refreshToken(refreshToken.getToken())
                                 .tokenType("Bearer")
                                 .username(user.getUsername())
                                 .userRole(user.getRole())
                                 .build();
+        }
+
+        @Override
+        @Transactional
+        public AuthResponse refreshToken(RefreshTokenRequest request) {
+                String requestRefreshToken = request.getRefreshToken();
+
+                return refreshTokenService.findByToken(requestRefreshToken)
+                                .map(refreshTokenService::verifyExpiration)
+                                .map(RefreshToken::getUser)
+                                .map(user -> {
+                                        String newAccessToken = jwtTokenProvider.generateTokenFromUsername(user.getUsername());
+                                        // Refresh Token Rotation: generate a new refresh token and delete the old one
+                                        RefreshToken newRefreshToken = refreshTokenService.createRefreshToken(user);
+
+                                        return AuthResponse.builder()
+                                                        .message("Token refreshed successfully")
+                                                        .accessToken(newAccessToken)
+                                                        .refreshToken(newRefreshToken.getToken())
+                                                        .tokenType("Bearer")
+                                                        .username(user.getUsername())
+                                                        .userRole(user.getRole())
+                                                        .build();
+                                })
+                                .orElseThrow(() -> new BadRequestException("Refresh token is not found in database!"));
+        }
+
+        @Override
+        @Transactional
+        public void logout(LogoutRequest request) {
+                String refreshToken = request.getRefreshToken();
+                refreshTokenService.deleteByToken(refreshToken);
         }
 }

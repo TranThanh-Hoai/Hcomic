@@ -1,12 +1,13 @@
 package com.comic.h.service.impl;
 
-import java.util.List;
-
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.comic.h.dto.request.CommentRequest;
 import com.comic.h.dto.response.CommentResponse;
+import com.comic.h.dto.response.PageResponse;
 import com.comic.h.entity.Chapter;
 import com.comic.h.entity.Comic;
 import com.comic.h.entity.Comment;
@@ -93,28 +94,26 @@ public class CommentServiceImpl implements CommentService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<CommentResponse> getCommentsByComicId(Long comicId) {
+    public PageResponse<CommentResponse> getCommentsByComicId(Long comicId, Pageable pageable) {
         if (!comicRepository.existsById(comicId)) {
             throw new ResourceNotFoundException("Comic not found with id: " + comicId);
         }
 
-        List<Comment> comments = commentRepository.findByComicIdAndChapterIsNullOrderByCreatedAtDesc(comicId);
-        return comments.stream()
-                .map(commentMapper::toResponse)
-                .toList();
+        Page<Comment> page = commentRepository.findByComicIdAndChapterIsNull(comicId, pageable);
+        Page<CommentResponse> responsePage = page.map(commentMapper::toResponse);
+        return PageResponse.from(responsePage);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<CommentResponse> getCommentsByChapterId(Long chapterId) {
+    public PageResponse<CommentResponse> getCommentsByChapterId(Long chapterId, Pageable pageable) {
         if (!chapterRepository.existsById(chapterId)) {
             throw new ResourceNotFoundException("Chapter not found with id: " + chapterId);
         }
 
-        List<Comment> comments = commentRepository.findByChapterIdOrderByCreatedAtDesc(chapterId);
-        return comments.stream()
-                .map(commentMapper::toResponse)
-                .toList();
+        Page<Comment> page = commentRepository.findByChapterId(chapterId, pageable);
+        Page<CommentResponse> responsePage = page.map(commentMapper::toResponse);
+        return PageResponse.from(responsePage);
     }
 
     private User findUserByUsername(String username) {

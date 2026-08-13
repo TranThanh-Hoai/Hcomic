@@ -1,7 +1,8 @@
 package com.comic.h.controller;
 
-import java.util.List;
-
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -16,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.comic.h.dto.request.CommentRequest;
 import com.comic.h.dto.response.CommentResponse;
+import com.comic.h.dto.response.PageResponse;
 import com.comic.h.service.CommentService;
 
 import jakarta.validation.Valid;
@@ -37,8 +39,10 @@ public class CommentController {
     }
 
     @GetMapping("/api/comics/{comicId}/comments")
-    public ResponseEntity<List<CommentResponse>> getCommentsByComicId(@PathVariable Long comicId) {
-        return ResponseEntity.ok(commentService.getCommentsByComicId(comicId));
+    public ResponseEntity<PageResponse<CommentResponse>> getCommentsByComicId(
+            @PathVariable Long comicId,
+            @PageableDefault(page = 0, size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        return ResponseEntity.ok(commentService.getCommentsByComicId(comicId, pageable));
     }
 
     @PreAuthorize("isAuthenticated()")
@@ -51,8 +55,10 @@ public class CommentController {
     }
 
     @GetMapping("/api/chapters/{chapterId}/comments")
-    public ResponseEntity<List<CommentResponse>> getCommentsByChapterId(@PathVariable Long chapterId) {
-        return ResponseEntity.ok(commentService.getCommentsByChapterId(chapterId));
+    public ResponseEntity<PageResponse<CommentResponse>> getCommentsByChapterId(
+            @PathVariable Long chapterId,
+            @PageableDefault(page = 0, size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        return ResponseEntity.ok(commentService.getCommentsByChapterId(chapterId, pageable));
     }
 
     @PreAuthorize("isAuthenticated()")

@@ -2,6 +2,7 @@ package com.comic.h.security;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
+import java.util.UUID;
 
 import javax.crypto.SecretKey;
 
@@ -14,8 +15,10 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.UnsupportedJwtException;
 import io.jsonwebtoken.security.Keys;
+import lombok.extern.slf4j.Slf4j;
 
 @Component
+@Slf4j
 public class JwtTokenProvider {
 
     @Value("${app.jwt.secret}")
@@ -28,14 +31,19 @@ public class JwtTokenProvider {
         return Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
     }
 
-    // Generate JWT Token
+    // Generate JWT Token from Authentication
     public String generateToken(Authentication authentication) {
-        String username = authentication.getName();
+        return generateTokenFromUsername(authentication.getName());
+    }
 
+    // Generate JWT Token from Username directly
+    public String generateTokenFromUsername(String username) {
         Date currentDate = new Date();
         Date expireDate = new Date(currentDate.getTime() + jwtExpirationDate);
 
         return Jwts.builder()
+                .id(UUID.randomUUID().toString())
+                .issuer("hcomic-api")
                 .subject(username)
                 .issuedAt(currentDate)
                 .expiration(expireDate)
@@ -62,13 +70,13 @@ public class JwtTokenProvider {
                     .parseSignedClaims(token);
             return true;
         } catch (MalformedJwtException e) {
-            System.err.println("Invalid JWT token: " + e.getMessage());
+            log.warn("Invalid JWT token: {}", e.getMessage());
         } catch (ExpiredJwtException e) {
-            System.err.println("JWT token is expired: " + e.getMessage());
+            log.warn("JWT token is expired: {}", e.getMessage());
         } catch (UnsupportedJwtException e) {
-            System.err.println("JWT token is unsupported: " + e.getMessage());
+            log.warn("JWT token is unsupported: {}", e.getMessage());
         } catch (IllegalArgumentException e) {
-            System.err.println("JWT claims string is empty: " + e.getMessage());
+            log.warn("JWT claims string is empty: {}", e.getMessage());
         }
         return false;
     }

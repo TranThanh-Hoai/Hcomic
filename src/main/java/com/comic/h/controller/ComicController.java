@@ -1,7 +1,8 @@
 package com.comic.h.controller;
 
-import java.util.List;
-
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -18,6 +19,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.comic.h.dto.request.ComicRequest;
 import com.comic.h.dto.response.ComicResponse;
+import com.comic.h.dto.response.PageResponse;
 import com.comic.h.service.ComicService;
 
 import jakarta.validation.Valid;
@@ -40,8 +42,9 @@ public class ComicController {
     }
 
     @GetMapping
-    public ResponseEntity<List<ComicResponse>> getAllComics() {
-        return ResponseEntity.ok(comicService.getAllComics());
+    public ResponseEntity<PageResponse<ComicResponse>> getAllComics(
+            @PageableDefault(page = 0, size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        return ResponseEntity.ok(comicService.getAllComics(pageable));
     }
 
     @GetMapping("/{id}")
@@ -56,14 +59,17 @@ public class ComicController {
 
     @PreAuthorize("hasAnyRole('TRANSLATOR', 'ADMIN')")
     @GetMapping("/my-comics")
-    public ResponseEntity<List<ComicResponse>> getMyComics() {
-        return ResponseEntity.ok(comicService.getMyComics());
+    public ResponseEntity<PageResponse<ComicResponse>> getMyComics(
+            @PageableDefault(page = 0, size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        return ResponseEntity.ok(comicService.getMyComics(pageable));
     }
 
 
     @GetMapping("/uploader/{uploader}")
-    public ResponseEntity<List<ComicResponse>> getComicsByUploader(@PathVariable String uploader) {
-        return ResponseEntity.ok(comicService.getComicsByUploader(uploader));
+    public ResponseEntity<PageResponse<ComicResponse>> getComicsByUploader(
+            @PathVariable String uploader,
+            @PageableDefault(page = 0, size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        return ResponseEntity.ok(comicService.getComicsByUploader(uploader, pageable));
     }
 
     @PreAuthorize("hasAnyRole('TRANSLATOR', 'ADMIN')")

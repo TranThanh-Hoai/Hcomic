@@ -6,7 +6,7 @@ import org.mapstruct.Mapping;
 import com.comic.h.dto.response.ComicResponse;
 import com.comic.h.entity.Comic;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", uses = {GenreMapper.class})
 public interface ComicMapper {
 
     @Mapping(source = "uploader.username", target = "uploader")

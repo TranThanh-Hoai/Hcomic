@@ -7,6 +7,7 @@ import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -14,7 +15,7 @@ import org.springframework.data.repository.query.Param;
 import com.comic.h.entity.Comic;
 import com.comic.h.entity.User;
 
-public interface ComicRepository extends JpaRepository<Comic, Long> {
+public interface ComicRepository extends JpaRepository<Comic, Long>, JpaSpecificationExecutor<Comic> {
 
     Optional<Comic> findBySlug(String slug);
 

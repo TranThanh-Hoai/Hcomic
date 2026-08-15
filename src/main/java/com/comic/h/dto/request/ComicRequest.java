@@ -28,4 +28,6 @@ public class ComicRequest {
     private String author;
 
     private ComicStatus status;
+
+    private java.util.List<Long> genreIds;
 }

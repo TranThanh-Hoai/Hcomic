@@ -2,7 +2,9 @@ package com.comic.h.service.impl;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -18,6 +20,7 @@ import com.comic.h.dto.request.ComicRequest;
 import com.comic.h.dto.response.ComicResponse;
 import com.comic.h.dto.response.PageResponse;
 import com.comic.h.entity.Comic;
+import com.comic.h.entity.Genre;
 import com.comic.h.entity.User;
 import com.comic.h.enums.ComicStatus;
 import com.comic.h.exception.ForbiddenException;
@@ -25,6 +28,7 @@ import com.comic.h.exception.ResourceNotFoundException;
 import com.comic.h.mapper.ComicMapper;
 import com.comic.h.repository.ChapterImageRepository;
 import com.comic.h.repository.ComicRepository;
+import com.comic.h.repository.GenreRepository;
 import com.comic.h.repository.UserRepository;
 import com.comic.h.security.ComicSecurityEvaluator;
 import com.comic.h.service.ComicService;
@@ -42,6 +46,7 @@ public class ComicServiceImpl implements ComicService {
     private String uploadDir = "upload/comic";
 
     private final ComicRepository comicRepository;
+    private final GenreRepository genreRepository;
     private final ChapterImageRepository chapterImageRepository;
     private final UserRepository userRepository;
     private final FileStorageService fileStorageService;
@@ -68,6 +73,11 @@ public class ComicServiceImpl implements ComicService {
 
         String coverImagePath = saveCoverImage(cover, slug);
 
+        Set<Genre> genres = new HashSet<>();
+        if (request.getGenreIds() != null && !request.getGenreIds().isEmpty()) {
+            genres = new HashSet<>(genreRepository.findAllById(request.getGenreIds()));
+        }
+
         Comic comic = Comic.builder()
                 .title(request.getTitle())
                 .slug(slug)
@@ -76,6 +86,7 @@ public class ComicServiceImpl implements ComicService {
                 .uploader(uploader)
                 .coverImage(coverImagePath)
                 .status(status)
+                .genres(genres)
                 .build();
 
         Comic savedComic = comicRepository.save(comic);
@@ -85,7 +96,18 @@ public class ComicServiceImpl implements ComicService {
     @Override
     @Transactional(readOnly = true)
     public PageResponse<ComicResponse> getAllComics(Pageable pageable) {
-        Page<Comic> page = comicRepository.findAll(pageable);
+        return getAllComics(null, pageable);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<ComicResponse> getAllComics(String genreSlug, Pageable pageable) {
+        Page<Comic> page;
+        if (genreSlug != null && !genreSlug.trim().isEmpty() && !"ALL".equalsIgnoreCase(genreSlug.trim())) {
+            page = comicRepository.findByGenreSlug(genreSlug.trim(), pageable);
+        } else {
+            page = comicRepository.findAll(pageable);
+        }
         Page<ComicResponse> responsePage = page.map(comicMapper::toResponse);
         return PageResponse.from(responsePage);
     }
@@ -150,6 +172,11 @@ public class ComicServiceImpl implements ComicService {
 
         if (request.getStatus() != null) {
             comic.setStatus(request.getStatus());
+        }
+
+        if (request.getGenreIds() != null) {
+            Set<Genre> genres = new HashSet<>(genreRepository.findAllById(request.getGenreIds()));
+            comic.setGenres(genres);
         }
 
         String newCoverPath = null;

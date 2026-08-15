@@ -81,4 +81,13 @@ public class Comic {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    @Builder.Default
+    @jakarta.persistence.ManyToMany(fetch = FetchType.LAZY)
+    @jakarta.persistence.JoinTable(
+            name = "comic_genres",
+            joinColumns = @JoinColumn(name = "comic_id"),
+            inverseJoinColumns = @JoinColumn(name = "genre_id")
+    )
+    private java.util.Set<Genre> genres = new java.util.HashSet<>();
 }

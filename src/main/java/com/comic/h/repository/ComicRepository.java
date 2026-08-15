@@ -37,4 +37,7 @@ public interface ComicRepository extends JpaRepository<Comic, Long> {
 
     @Query("SELECT rh.comic, COUNT(rh) as readCount FROM ReadingHistory rh WHERE rh.updatedAt >= :sinceDate GROUP BY rh.comic ORDER BY readCount DESC")
     List<Object[]> findTrendingComicsSince(@Param("sinceDate") LocalDateTime sinceDate, Pageable pageable);
+
+    @Query("SELECT c FROM Comic c JOIN c.genres g WHERE g.slug = :genreSlug")
+    Page<Comic> findByGenreSlug(@Param("genreSlug") String genreSlug, Pageable pageable);
 }

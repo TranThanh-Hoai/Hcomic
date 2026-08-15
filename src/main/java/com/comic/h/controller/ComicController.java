@@ -1,5 +1,7 @@
 package com.comic.h.controller;
 
+import java.util.List;
+
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
@@ -21,6 +23,7 @@ import org.springframework.web.multipart.MultipartFile;
 import com.comic.h.dto.request.ComicRequest;
 import com.comic.h.dto.response.ComicResponse;
 import com.comic.h.dto.response.PageResponse;
+import com.comic.h.enums.ComicStatus;
 import com.comic.h.service.ComicService;
 
 import jakarta.validation.Valid;
@@ -44,9 +47,24 @@ public class ComicController {
 
     @GetMapping
     public ResponseEntity<PageResponse<ComicResponse>> getAllComics(
+            @RequestParam(required = false) String query,
+            @RequestParam(required = false) String q,
             @RequestParam(required = false) String genre,
+            @RequestParam(required = false) List<String> genres,
+            @RequestParam(required = false) ComicStatus status,
+            @RequestParam(required = false) String uploader,
             @PageableDefault(page = 0, size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        return ResponseEntity.ok(comicService.getAllComics(genre, pageable));
+        String searchQuery = (query != null && !query.trim().isEmpty()) ? query : q;
+        return ResponseEntity.ok(comicService.getAllComics(searchQuery, genre, genres, status, uploader, pageable));
+    }
+
+    @GetMapping("/quick-search")
+    public ResponseEntity<List<ComicResponse>> quickSearch(
+            @RequestParam(required = false) String query,
+            @RequestParam(required = false) String q,
+            @RequestParam(defaultValue = "5") int limit) {
+        String searchQuery = (query != null && !query.trim().isEmpty()) ? query : q;
+        return ResponseEntity.ok(comicService.quickSearch(searchQuery, limit));
     }
 
     @GetMapping("/{id}")
@@ -65,7 +83,6 @@ public class ComicController {
             @PageableDefault(page = 0, size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         return ResponseEntity.ok(comicService.getMyComics(pageable));
     }
-
 
     @GetMapping("/uploader/{uploader}")
     public ResponseEntity<PageResponse<ComicResponse>> getComicsByUploader(
@@ -90,4 +107,3 @@ public class ComicController {
         return ResponseEntity.ok("Comic deleted successfully with id: " + id);
     }
 }
-

@@ -7,7 +7,9 @@ import java.util.List;
 import java.util.Set;
 
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -30,6 +32,7 @@ import com.comic.h.repository.ChapterImageRepository;
 import com.comic.h.repository.ComicRepository;
 import com.comic.h.repository.GenreRepository;
 import com.comic.h.repository.UserRepository;
+import com.comic.h.repository.specification.ComicSpecification;
 import com.comic.h.security.ComicSecurityEvaluator;
 import com.comic.h.service.ComicService;
 import com.comic.h.service.FileStorageService;
@@ -96,20 +99,43 @@ public class ComicServiceImpl implements ComicService {
     @Override
     @Transactional(readOnly = true)
     public PageResponse<ComicResponse> getAllComics(Pageable pageable) {
-        return getAllComics(null, pageable);
+        return getAllComics(null, null, null, null, null, pageable);
     }
 
     @Override
     @Transactional(readOnly = true)
     public PageResponse<ComicResponse> getAllComics(String genreSlug, Pageable pageable) {
-        Page<Comic> page;
-        if (genreSlug != null && !genreSlug.trim().isEmpty() && !"ALL".equalsIgnoreCase(genreSlug.trim())) {
-            page = comicRepository.findByGenreSlug(genreSlug.trim(), pageable);
-        } else {
-            page = comicRepository.findAll(pageable);
-        }
+        return getAllComics(null, genreSlug, null, null, null, pageable);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<ComicResponse> getAllComics(
+            String query,
+            String genreSlug,
+            List<String> genreSlugs,
+            ComicStatus status,
+            String uploader,
+            Pageable pageable) {
+        var spec = ComicSpecification.filter(query, genreSlug, genreSlugs, status, uploader);
+        Page<Comic> page = comicRepository.findAll(spec, pageable);
         Page<ComicResponse> responsePage = page.map(comicMapper::toResponse);
         return PageResponse.from(responsePage);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ComicResponse> quickSearch(String query, int limit) {
+        if (query == null || query.trim().isEmpty()) {
+            return List.of();
+        }
+        int validLimit = limit > 0 ? Math.min(limit, 20) : 5;
+        Pageable pageable = PageRequest.of(0, validLimit, Sort.by(Sort.Direction.DESC, "viewCount", "createdAt"));
+        var spec = ComicSpecification.filter(query.trim(), null, null, null, null);
+        Page<Comic> page = comicRepository.findAll(spec, pageable);
+        return page.getContent().stream()
+                .map(comicMapper::toResponse)
+                .toList();
     }
 
     @Override

@@ -13,6 +13,8 @@ public interface ComicService {
 
     PageResponse<ComicResponse> getAllComics(Pageable pageable);
 
+    PageResponse<ComicResponse> getAllComics(String genreSlug, Pageable pageable);
+
     ComicResponse getComicById(Long id);
 
     ComicResponse getComicBySlug(String slug);

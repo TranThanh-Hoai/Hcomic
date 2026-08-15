@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
@@ -43,8 +44,9 @@ public class ComicController {
 
     @GetMapping
     public ResponseEntity<PageResponse<ComicResponse>> getAllComics(
+            @RequestParam(required = false) String genre,
             @PageableDefault(page = 0, size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        return ResponseEntity.ok(comicService.getAllComics(pageable));
+        return ResponseEntity.ok(comicService.getAllComics(genre, pageable));
     }
 
     @GetMapping("/{id}")

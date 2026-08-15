@@ -2,8 +2,6 @@ package com.comic.h.dto.response;
 
 import java.time.LocalDateTime;
 
-import com.comic.h.enums.ComicStatus;
-
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -15,20 +13,13 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class ComicResponse {
+public class GenreResponse {
 
     private Long id;
-    private String title;
+    private String name;
     private String slug;
     private String description;
-    private String author;
-    private String uploader;
-    private String coverImage;
-    private Long viewCount;
-    private Long likeCount;
-    private Double rating;
-    private ComicStatus status;
-    private java.util.List<GenreResponse> genres;
+    private Long comicCount;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

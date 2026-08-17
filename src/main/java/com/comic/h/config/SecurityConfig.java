@@ -47,11 +47,11 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/comic/**", "/api/comics/**", "/api/chapters/**",
-                                "/api/comments/**", "/api/ratings/**", "/api/genres/**", "/upload/**")
+                        .requestMatchers("/", "/api/auth/**", "/upload/**", "/h2-console/**",
+                                "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html")
                         .permitAll()
-                        .requestMatchers("/upload/**", "/h2-console/**", "/v3/api-docs/**", "/swagger-ui/**",
-                                "/swagger-ui.html")
+                        .requestMatchers(HttpMethod.GET, "/api/comic/**", "/api/comics/**", "/api/chapters/**",
+                                "/api/comments/**", "/api/ratings/**", "/api/genres/**")
                         .permitAll()
                         .anyRequest().authenticated())
                 .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()));

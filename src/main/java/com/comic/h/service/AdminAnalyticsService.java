@@ -87,7 +87,8 @@ public class AdminAnalyticsService {
 
         // If not enough history data, fallback to top comics by total viewCount
         if (responses.size() < limit) {
-            List<Comic> topComics = comicRepository.findAll(PageRequest.of(0, limit)).getContent();
+            Pageable fallbackPageable = PageRequest.of(0, limit, org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "viewCount", "createdAt"));
+            List<Comic> topComics = comicRepository.findAll(fallbackPageable).getContent();
             for (Comic c : topComics) {
                 boolean exists = responses.stream().anyMatch(r -> r.getComicId().equals(c.getId()));
                 if (!exists) {
@@ -109,21 +110,29 @@ public class AdminAnalyticsService {
     }
 
     public List<UserGrowthPoint> getUserGrowth(int days) {
-        List<UserGrowthPoint> growth = new ArrayList<>();
+        int validDays = Math.max(days, 1);
         LocalDate today = LocalDate.now();
+        LocalDate startDate = today.minusDays(validDays - 1);
+        LocalDateTime startDateTime = LocalDateTime.of(startDate, LocalTime.MIN);
 
-        for (int i = days - 1; i >= 0; i--) {
+        List<Object[]> rawCounts = userRepository.countUsersGroupedByDate(startDateTime);
+        java.util.Map<String, Long> dateCountMap = new java.util.HashMap<>();
+        for (Object[] row : rawCounts) {
+            if (row != null && row.length >= 2 && row[0] != null) {
+                String dateStr = row[0].toString();
+                Long count = ((Number) row[1]).longValue();
+                dateCountMap.put(dateStr, count);
+            }
+        }
+
+        List<UserGrowthPoint> growth = new ArrayList<>();
+        for (int i = validDays - 1; i >= 0; i--) {
             LocalDate date = today.minusDays(i);
-            LocalDateTime start = LocalDateTime.of(date, LocalTime.MIN);
-            LocalDateTime end = LocalDateTime.of(date, LocalTime.MAX);
-
-            // Fetch created count for that date
-            long count = userRepository.findAll().stream()
-                    .filter(u -> u.getCreatedAt() != null && !u.getCreatedAt().isBefore(start) && !u.getCreatedAt().isAfter(end))
-                    .count();
+            String dateStr = date.toString();
+            long count = dateCountMap.getOrDefault(dateStr, 0L);
 
             growth.add(UserGrowthPoint.builder()
-                    .date(date.toString())
+                    .date(dateStr)
                     .count(count)
                     .build());
         }

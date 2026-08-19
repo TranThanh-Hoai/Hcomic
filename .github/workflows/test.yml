@@ -1,0 +1,23 @@
+name: Run Tests
+
+on:
+  pull_request:
+    branches: ["develop"]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6.1.0
+
+      - name: Set up JDK
+        uses: actions/setup-java@v5.7.0
+        with:
+          java-version: "21"
+          distribution: "temurin"
+          cache: maven
+
+      - name: Run tests
+        run: chmod +x mvnw && ./mvnw test

@@ -33,7 +33,7 @@ public interface ComicRepository extends JpaRepository<Comic, Long>, JpaSpecific
     long sumTotalViewCount();
 
     @Modifying
-    @Query("UPDATE Comic c SET c.viewCount = c.viewCount + 1 WHERE c.id = :id")
+    @Query("UPDATE Comic c SET c.viewCount = COALESCE(c.viewCount, 0) + 1 WHERE c.id = :id")
     void incrementViewCount(@Param("id") Long id);
 
     @Query("SELECT rh.comic, COUNT(rh) as readCount FROM ReadingHistory rh WHERE rh.updatedAt >= :sinceDate GROUP BY rh.comic ORDER BY readCount DESC")

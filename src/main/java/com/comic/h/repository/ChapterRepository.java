@@ -3,6 +3,7 @@ package com.comic.h.repository;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -20,6 +21,7 @@ public interface ChapterRepository extends JpaRepository<Chapter, Long> {
 
     List<Chapter> findByComicSlugOrderByChapterNumberDesc(String comicSlug);
 
+    @EntityGraph(attributePaths = {"comic", "images"})
     Optional<Chapter> findByComicSlugAndSlug(String comicSlug, String chapterSlug);
 
     Optional<Chapter> findByComicIdAndSlug(Long comicId, String slug);
@@ -33,6 +35,6 @@ public interface ChapterRepository extends JpaRepository<Chapter, Long> {
     Optional<Chapter> findFirstByComicIdAndChapterNumberLessThanOrderByChapterNumberDesc(Long comicId, Double chapterNumber);
 
     @Modifying
-    @Query("UPDATE Chapter c SET c.viewCount = c.viewCount + 1 WHERE c.id = :id")
+    @Query("UPDATE Chapter c SET c.viewCount = COALESCE(c.viewCount, 0) + 1 WHERE c.id = :id")
     void incrementViewCount(@Param("id") Long id);
 }

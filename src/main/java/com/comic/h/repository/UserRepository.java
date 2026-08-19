@@ -30,4 +30,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
                            @Param("role") Role role,
                            @Param("isBanned") Boolean isBanned,
                            Pageable pageable);
+
+    @Query(value = "SELECT CAST(created_at AS DATE) as regDate, COUNT(*) as cnt " +
+                   "FROM users " +
+                   "WHERE created_at >= :startDate " +
+                   "GROUP BY CAST(created_at AS DATE)", nativeQuery = true)
+    java.util.List<Object[]> countUsersGroupedByDate(@Param("startDate") LocalDateTime startDate);
 }

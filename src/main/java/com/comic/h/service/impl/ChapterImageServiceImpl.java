@@ -53,6 +53,7 @@ public class ChapterImageServiceImpl implements ChapterImageService {
     }
 
     @Override
+    @Transactional
     public List<ChapterImageResponse> uploadImagesBatch(Long chapterId, List<MultipartFile> images, Integer startPageNumber) {
         if (images == null || images.isEmpty()) {
             throw new BadRequestException("Image batch cannot be empty");

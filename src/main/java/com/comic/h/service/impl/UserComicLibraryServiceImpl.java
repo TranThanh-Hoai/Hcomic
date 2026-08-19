@@ -70,7 +70,23 @@ public class UserComicLibraryServiceImpl implements UserComicLibraryService {
     public List<UserComicLibraryResponse> getUserLibrary(String username, ShelfStatus status) {
         User user = findUserByUsername(username);
         List<UserComicLibrary> items = userComicLibraryRepository.findByUserIdAndStatus(user.getUserId(), status);
-        return items.stream().map(this::mapToResponse).collect(Collectors.toList());
+        if (items.isEmpty()) {
+            return List.of();
+        }
+
+        // Preload user's reading histories in 1 query to avoid N+1 queries during response mapping
+        java.util.Map<Long, ReadingHistory> historyMap = readingHistoryRepository.findAllByUserIdOrderByUpdatedAtDesc(user.getUserId())
+                .stream()
+                .filter(h -> h.getComic() != null)
+                .collect(Collectors.toMap(
+                        h -> h.getComic().getId(),
+                        h -> h,
+                        (h1, h2) -> h1
+                ));
+
+        return items.stream()
+                .map(item -> userComicLibraryMapper.toResponse(item, historyMap.get(item.getComic().getId())))
+                .collect(Collectors.toList());
     }
 
     @Override

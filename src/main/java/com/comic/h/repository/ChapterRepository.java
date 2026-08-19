@@ -35,6 +35,6 @@ public interface ChapterRepository extends JpaRepository<Chapter, Long> {
     Optional<Chapter> findFirstByComicIdAndChapterNumberLessThanOrderByChapterNumberDesc(Long comicId, Double chapterNumber);
 
     @Modifying
-    @Query("UPDATE Chapter c SET c.viewCount = c.viewCount + 1 WHERE c.id = :id")
+    @Query("UPDATE Chapter c SET c.viewCount = COALESCE(c.viewCount, 0) + 1 WHERE c.id = :id")
     void incrementViewCount(@Param("id") Long id);
 }

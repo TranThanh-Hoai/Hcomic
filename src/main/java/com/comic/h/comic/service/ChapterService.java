@@ -1,0 +1,31 @@
+package com.comic.h.comic.service;
+
+import java.util.List;
+
+import com.comic.h.comic.dto.request.ChapterRequest;
+import com.comic.h.comic.dto.response.ChapterDetailResponse;
+import com.comic.h.comic.dto.response.ChapterResponse;
+import com.comic.h.comic.entity.Chapter;
+import com.comic.h.comic.entity.Comic;
+
+public interface ChapterService {
+
+    ChapterResponse createChapter(Long comicId, ChapterRequest request);
+
+    List<ChapterResponse> getChaptersByComicSlug(String comicSlug, String sort);
+
+    List<ChapterResponse> getChaptersByComicId(Long comicId, String sort);
+
+    ChapterResponse getChapterById(Long chapterId);
+
+    ChapterDetailResponse getChapterDetailBySlug(String comicSlug, String chapterSlug);
+
+    ChapterResponse updateChapter(Long chapterId, ChapterRequest request);
+
+    void deleteChapter(Long chapterId);
+
+    Chapter getChapterEntityById(Long chapterId);
+
+    void validateChapterBelongsToComic(Chapter chapter, Comic comic);
+}
+

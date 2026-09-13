@@ -1,0 +1,20 @@
+package com.comic.h.library.repository;
+
+import java.util.List;
+import java.util.Optional;
+import org.springframework.data.jpa.repository.EntityGraph;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+import com.comic.h.library.entity.ReadingHistory;
+
+public interface ReadingHistoryRepository extends JpaRepository<ReadingHistory, Long> {
+
+    @EntityGraph(attributePaths = {"comic", "chapter"})
+    Optional<ReadingHistory> findByUserUserIdAndComicId(Long userId, Long comicId);
+
+    @EntityGraph(attributePaths = {"comic", "chapter"})
+    @Query("SELECT rh FROM ReadingHistory rh WHERE rh.user.userId = :userId ORDER BY rh.updatedAt DESC")
+    List<ReadingHistory> findAllByUserIdOrderByUpdatedAtDesc(@Param("userId") Long userId);
+}

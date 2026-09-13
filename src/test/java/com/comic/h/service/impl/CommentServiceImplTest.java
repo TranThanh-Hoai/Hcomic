@@ -9,19 +9,20 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.comic.h.dto.request.CommentRequest;
-import com.comic.h.dto.response.CommentResponse;
-import com.comic.h.entity.Chapter;
-import com.comic.h.entity.Comic;
-import com.comic.h.entity.Comment;
-import com.comic.h.entity.User;
-import com.comic.h.exception.ForbiddenException;
-import com.comic.h.exception.ResourceNotFoundException;
-import com.comic.h.mapper.CommentMapper;
-import com.comic.h.repository.ChapterRepository;
-import com.comic.h.repository.ComicRepository;
-import com.comic.h.repository.CommentRepository;
-import com.comic.h.repository.UserRepository;
+import com.comic.h.comic.entity.Chapter;
+import com.comic.h.comic.entity.Comic;
+import com.comic.h.comic.service.ChapterService;
+import com.comic.h.comic.service.ComicService;
+import com.comic.h.common.exception.ForbiddenException;
+import com.comic.h.common.exception.ResourceNotFoundException;
+import com.comic.h.identity.entity.User;
+import com.comic.h.identity.service.UserService;
+import com.comic.h.interaction.dto.request.CommentRequest;
+import com.comic.h.interaction.dto.response.CommentResponse;
+import com.comic.h.interaction.entity.Comment;
+import com.comic.h.interaction.mapper.CommentMapper;
+import com.comic.h.interaction.repository.CommentRepository;
+import com.comic.h.interaction.service.impl.CommentServiceImpl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -36,13 +37,13 @@ class CommentServiceImplTest {
     private CommentRepository commentRepository;
 
     @Mock
-    private ComicRepository comicRepository;
+    private ComicService comicService;
 
     @Mock
-    private ChapterRepository chapterRepository;
+    private ChapterService chapterService;
 
     @Mock
-    private UserRepository userRepository;
+    private UserService userService;
 
     @Mock
     private CommentMapper commentMapper;
@@ -55,7 +56,7 @@ class CommentServiceImplTest {
     // ==========================================
 
     @Test
-    @DisplayName("Create Comment - Thêm comment vào Comic thành công")
+    @DisplayName("Create Comment - Successfully created on Comic")
     void createComment_OnComic_Success() {
         // Arrange
         Long comicId = 10L;
@@ -68,8 +69,8 @@ class CommentServiceImplTest {
         User user = User.builder().userId(1L).username(username).build();
         Comic comic = Comic.builder().id(comicId).title("One Piece").build();
 
-        when(userRepository.findByUsername(username)).thenReturn(Optional.of(user));
-        when(comicRepository.findById(comicId)).thenReturn(Optional.of(comic));
+        when(userService.getUserEntityByUsername(username)).thenReturn(user);
+        when(comicService.getComicEntityById(comicId)).thenReturn(comic);
 
         Comment savedComment = Comment.builder()
                 .id(100L)
@@ -105,7 +106,7 @@ class CommentServiceImplTest {
     }
 
     @Test
-    @DisplayName("Create Comment - Thêm comment vào Chapter thành công")
+    @DisplayName("Create Comment - Successfully created on Chapter")
     void createComment_OnChapter_Success() {
         // Arrange
         Long comicId = 10L;
@@ -120,8 +121,8 @@ class CommentServiceImplTest {
         Comic comic = Comic.builder().id(comicId).title("One Piece").build();
         Chapter chapter = Chapter.builder().id(chapterId).comic(comic).build();
 
-        when(userRepository.findByUsername(username)).thenReturn(Optional.of(user));
-        when(chapterRepository.findById(chapterId)).thenReturn(Optional.of(chapter));
+        when(userService.getUserEntityByUsername(username)).thenReturn(user);
+        when(chapterService.getChapterEntityById(chapterId)).thenReturn(chapter);
 
         Comment savedComment = Comment.builder()
                 .id(101L)
@@ -148,21 +149,22 @@ class CommentServiceImplTest {
         assertThat(actualResponse.getContent()).isEqualTo("Epic battle this chapter!");
         assertThat(actualResponse.getChapterId()).isEqualTo(chapterId);
 
-        verify(chapterRepository).findById(chapterId);
+        verify(chapterService).getChapterEntityById(chapterId);
         verify(commentRepository).save(argThat(c ->
                 c.getChapter() != null && c.getChapter().getId().equals(chapterId)
         ));
     }
 
     @Test
-    @DisplayName("Create Comment - Ném ResourceNotFoundException khi username không tồn tại")
+    @DisplayName("Create Comment - Throws ResourceNotFoundException when username does not exist")
     void createComment_UserNotFound_ThrowsResourceNotFoundException() {
         // Arrange
         Long comicId = 10L;
         String username = "nonexistent";
         CommentRequest request = CommentRequest.builder().content("Hello").build();
 
-        when(userRepository.findByUsername(username)).thenReturn(Optional.empty());
+        when(userService.getUserEntityByUsername(username))
+                .thenThrow(new ResourceNotFoundException("User not found with username: nonexistent"));
 
         // Act & Assert
         assertThatThrownBy(() -> commentService.createComment(comicId, request, username))
@@ -173,7 +175,7 @@ class CommentServiceImplTest {
     }
 
     @Test
-    @DisplayName("Create Comment - Ném ResourceNotFoundException khi comic không tồn tại")
+    @DisplayName("Create Comment - Throws ResourceNotFoundException when comic does not exist")
     void createComment_ComicNotFound_ThrowsResourceNotFoundException() {
         // Arrange
         Long comicId = 999L;
@@ -181,8 +183,9 @@ class CommentServiceImplTest {
         CommentRequest request = CommentRequest.builder().content("Hello").build();
         User user = User.builder().userId(1L).username(username).build();
 
-        when(userRepository.findByUsername(username)).thenReturn(Optional.of(user));
-        when(comicRepository.findById(comicId)).thenReturn(Optional.empty());
+        when(userService.getUserEntityByUsername(username)).thenReturn(user);
+        when(comicService.getComicEntityById(comicId))
+                .thenThrow(new ResourceNotFoundException("Comic not found with id: 999"));
 
         // Act & Assert
         assertThatThrownBy(() -> commentService.createComment(comicId, request, username))
@@ -197,7 +200,7 @@ class CommentServiceImplTest {
     // ==========================================
 
     @Test
-    @DisplayName("Update Comment - Tác giả sửa comment của mình thành công")
+    @DisplayName("Update Comment - Author successfully updates their comment")
     void updateComment_Success_ByAuthor() {
         // Arrange
         Long commentId = 1L;
@@ -233,7 +236,7 @@ class CommentServiceImplTest {
     }
 
     @Test
-    @DisplayName("Update Comment - Ném ForbiddenException khi người khác cố tình sửa comment")
+    @DisplayName("Update Comment - Throws ForbiddenException when unauthorized user attempts edit")
     void updateComment_Forbidden_WhenNotAuthor() {
         // Arrange
         Long commentId = 1L;
@@ -266,7 +269,7 @@ class CommentServiceImplTest {
     // ==========================================
 
     @Test
-    @DisplayName("Delete Comment - Tác giả xóa comment của mình thành công")
+    @DisplayName("Delete Comment - Author successfully deletes their comment")
     void deleteComment_Success_ByAuthor() {
         // Arrange
         Long commentId = 1L;
@@ -290,7 +293,7 @@ class CommentServiceImplTest {
     }
 
     @Test
-    @DisplayName("Delete Comment - Ném ForbiddenException khi người khác cố tình xóa comment")
+    @DisplayName("Delete Comment - Throws ForbiddenException when unauthorized user attempts delete")
     void deleteComment_Forbidden_WhenNotAuthor() {
         // Arrange
         Long commentId = 1L;

@@ -17,23 +17,24 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.comic.h.dto.request.ComicRequest;
-import com.comic.h.dto.response.ComicResponse;
-import com.comic.h.entity.Comic;
-import com.comic.h.entity.Genre;
-import com.comic.h.entity.User;
-import com.comic.h.enums.ComicStatus;
-import com.comic.h.enums.Role;
-import com.comic.h.exception.ForbiddenException;
-import com.comic.h.exception.ResourceNotFoundException;
-import com.comic.h.mapper.ComicMapper;
-import com.comic.h.repository.ChapterImageRepository;
-import com.comic.h.repository.ComicRepository;
-import com.comic.h.repository.GenreRepository;
-import com.comic.h.repository.UserRepository;
-import com.comic.h.security.ComicSecurityEvaluator;
-import com.comic.h.service.FileStorageService;
-import com.comic.h.util.ImageProcessor;
+import com.comic.h.comic.dto.request.ComicRequest;
+import com.comic.h.comic.dto.response.ComicResponse;
+import com.comic.h.comic.entity.Comic;
+import com.comic.h.comic.entity.Genre;
+import com.comic.h.comic.enums.ComicStatus;
+import com.comic.h.comic.mapper.ComicMapper;
+import com.comic.h.comic.repository.ChapterImageRepository;
+import com.comic.h.comic.repository.ComicRepository;
+import com.comic.h.comic.repository.GenreRepository;
+import com.comic.h.comic.security.ComicSecurityEvaluator;
+import com.comic.h.comic.service.impl.ComicServiceImpl;
+import com.comic.h.common.exception.ForbiddenException;
+import com.comic.h.common.exception.ResourceNotFoundException;
+import com.comic.h.common.storage.FileStorageService;
+import com.comic.h.common.util.ImageProcessor;
+import com.comic.h.identity.entity.User;
+import com.comic.h.identity.enums.Role;
+import com.comic.h.identity.service.UserService;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -55,7 +56,7 @@ class ComicServiceImplTest {
     private ChapterImageRepository chapterImageRepository;
 
     @Mock
-    private UserRepository userRepository;
+    private UserService userService;
 
     @Mock
     private FileStorageService fileStorageService;
@@ -88,7 +89,7 @@ class ComicServiceImplTest {
     // ==========================================
 
     @Test
-    @DisplayName("Create Comic - Thành công với đầy đủ cover và thể loại")
+    @DisplayName("Create Comic - Success with cover image and genres")
     void createComic_Success() throws IOException {
         // Arrange
         mockSecurityUser("uploader_user");
@@ -98,7 +99,7 @@ class ComicServiceImplTest {
                 .username("uploader_user")
                 .role(Role.USER)
                 .build();
-        when(userRepository.findByUsername("uploader_user")).thenReturn(Optional.of(uploader));
+        when(userService.getUserEntityByUsername("uploader_user")).thenReturn(uploader);
 
         ComicRequest request = ComicRequest.builder()
                 .title("Solo Leveling")
@@ -160,11 +161,11 @@ class ComicServiceImplTest {
     }
 
     @Test
-    @DisplayName("Create Comic - Ném ResourceNotFoundException khi uploader không tồn tại")
+    @DisplayName("Create Comic - Throws ResourceNotFoundException when uploader does not exist")
     void createComic_UserNotFound_ThrowsResourceNotFoundException() {
         // Arrange
         mockSecurityUser("unknown_user");
-        when(userRepository.findByUsername("unknown_user")).thenReturn(Optional.empty());
+        when(userService.getUserEntityByUsername("unknown_user")).thenThrow(new ResourceNotFoundException("User not found with username: unknown_user"));
 
         ComicRequest request = ComicRequest.builder()
                 .title("Solo Leveling")
@@ -183,7 +184,7 @@ class ComicServiceImplTest {
     // ==========================================
 
     @Test
-    @DisplayName("Get Comic By ID - Thành công khi ID tồn tại")
+    @DisplayName("Get Comic By ID - Success when ID exists")
     void getComicById_Success() {
         // Arrange
         Long comicId = 1L;
@@ -212,7 +213,7 @@ class ComicServiceImplTest {
     }
 
     @Test
-    @DisplayName("Get Comic By ID - Ném ResourceNotFoundException khi ID không tồn tại")
+    @DisplayName("Get Comic By ID - Throws ResourceNotFoundException when ID does not exist")
     void getComicById_NotFound_ThrowsResourceNotFoundException() {
         // Arrange
         when(comicRepository.findById(999L)).thenReturn(Optional.empty());
@@ -228,7 +229,7 @@ class ComicServiceImplTest {
     // ==========================================
 
     @Test
-    @DisplayName("Update Comic - Thành công bởi chủ sở hữu (Owner)")
+    @DisplayName("Update Comic - Success by owner")
     void updateComic_Success_ByOwner() {
         // Arrange
         Long comicId = 1L;
@@ -271,7 +272,7 @@ class ComicServiceImplTest {
     }
 
     @Test
-    @DisplayName("Update Comic - Ném ForbiddenException khi không phải chủ sở hữu hoặc admin")
+    @DisplayName("Update Comic - Throws ForbiddenException when not owner or admin")
     void updateComic_Forbidden_WhenNotOwnerOrAdmin() {
         // Arrange
         Long comicId = 1L;
@@ -301,7 +302,7 @@ class ComicServiceImplTest {
     // ==========================================
 
     @Test
-    @DisplayName("Delete Comic - Thành công bởi chủ sở hữu và lên lịch dọn dẹp file")
+    @DisplayName("Delete Comic - Success by owner and schedules file cleanup")
     void deleteComic_Success_ByOwner() {
         // Arrange
         Long comicId = 1L;
@@ -326,7 +327,7 @@ class ComicServiceImplTest {
     }
 
     @Test
-    @DisplayName("Delete Comic - Ném ForbiddenException khi không có quyền xóa")
+    @DisplayName("Delete Comic - Throws ForbiddenException when not permitted to delete")
     void deleteComic_Forbidden_WhenNotOwnerOrAdmin() {
         // Arrange
         Long comicId = 1L;

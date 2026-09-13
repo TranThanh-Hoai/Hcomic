@@ -8,26 +8,17 @@ import io.swagger.v3.oas.annotations.security.SecurityScheme;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-@OpenAPIDefinition(info = @Info(title = "HComic API", version = "1.0.0", description = "REST API cho ứng dụng HComic.\n\n"
-                +
-                "### Tài khoản test:\n" +
+@OpenAPIDefinition(info = @Info(title = "HComic API", version = "1.0.0", description = "RESTful API for the HComic reader platform.\n\n"
+        + "### Test Accounts:\n"
+        + "- **USER**: username `user` / password `123456`\n"
+        + "- **TRANSLATOR**: username `translator` / password `123456`\n\n"
+        + "### 🔑 JWT Authentication Guide:\n"
+        + "1. Call `POST /api/auth/login` (or `POST /api/auth/register`) to obtain an `accessToken`.\n"
+        + "2. Click the green **Authorize** button at the top right.\n"
+        + "3. Paste the token value into the Value input field (without the 'Bearer ' prefix).\n"
+        + "4. Click **Authorize** -> **Close** to execute protected endpoints."), security = @SecurityRequirement(name = "bearerAuth"))
 
-                "Tài khoản test USER:\n" +
-                "- \"username\": \"user\",\n" +
-                "- \"password\": \"123456\"\n\n" +
-
-                "Tài khoản test TRANSLATOR:\n\n" +
-                "- \"username\": \"translator\",\n" +
-                "- \"password\": \"123456\"\n" +
-                "\n" +
-                "### 🔑 Hướng dẫn xác thực JWT:\n" +
-                "1. Gọi API `POST /api/auth/login` (hoặc `POST /api/auth/register`) bên dưới để lấy `accessToken`.(Có thể lấy tài khoản test phía trên để dùng)\n"
-                +
-                "2. Click vào nút **Authorize** màu xanh ở góc trên bên phải.\n" +
-                "3. Dán trực tiếp chuỗi token vừa lấy được vào ô Value (không cần thêm tiền tố 'Bearer ').\n" +
-                "4. Nhấp nút **Authorize** -> **Close** để thực thi các API bảo vệ."), security = @SecurityRequirement(name = "bearerAuth"))
-
-@SecurityScheme(name = "bearerAuth", type = SecuritySchemeType.HTTP, scheme = "bearer", bearerFormat = "JWT", description = "Dán chuỗi accessToken thu được từ API /api/auth/login vào đây để xác thực.")
+@SecurityScheme(name = "bearerAuth", type = SecuritySchemeType.HTTP, scheme = "bearer", bearerFormat = "JWT", description = "Paste the accessToken obtained from /api/auth/login here to authenticate.")
 
 public class OpenApiConfig {
 }

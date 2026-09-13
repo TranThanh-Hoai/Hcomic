@@ -207,7 +207,7 @@ public class ChapterServiceImpl implements ChapterService {
     @Override
     public Chapter getChapterEntityById(Long chapterId) {
         return chapterRepository.findById(chapterId)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy chương với id: " + chapterId));
+                .orElseThrow(() -> new ResourceNotFoundException("Chapter not found with id: " + chapterId));
     }
 
     @Override

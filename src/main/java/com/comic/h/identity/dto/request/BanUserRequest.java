@@ -11,6 +11,6 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class BanUserRequest {
-    @NotBlank(message = "Lý do khóa tài khoản không được để trống")
+    @NotBlank(message = "Ban reason cannot be blank")
     private String reason;
 }

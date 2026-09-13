@@ -92,7 +92,7 @@ public class ReportServiceImpl implements ReportService {
             } else if (request.getAction() == ReportAction.BAN_USER) {
                 Long targetAuthorId = getTargetAuthorId(report.getReportType(), report.getTargetId());
                 if (targetAuthorId != null) {
-                    adminUserService.banUser(targetAuthorId, new BanUserRequest("Khóa tài khoản do vi phạm nội dung báo cáo #" + reportId));
+                    adminUserService.banUser(targetAuthorId, new BanUserRequest("Account banned due to reported violation #" + reportId));
                 }
                 deleteTargetContent(report.getReportType(), report.getTargetId());
             }
@@ -149,12 +149,12 @@ public class ReportServiceImpl implements ReportService {
     }
 
     private ReportResponse mapToReportResponse(Report report) {
-        String targetTitle = "Mục #" + report.getTargetId();
+        String targetTitle = "Item #" + report.getTargetId();
         try {
             if (report.getReportType() == ReportType.COMMENT) {
                 Comment comment = commentService.getCommentEntityById(report.getTargetId());
                 if (comment != null) {
-                    targetTitle = "Bình luận: \"" + (comment.getContent().length() > 30 ? comment.getContent().substring(0, 30) + "..." : comment.getContent()) + "\"";
+                    targetTitle = "Comment: \"" + (comment.getContent().length() > 30 ? comment.getContent().substring(0, 30) + "..." : comment.getContent()) + "\"";
                 }
             } else if (report.getReportType() == ReportType.CHAPTER) {
                 Chapter chapter = chapterService.getChapterEntityById(report.getTargetId());
@@ -164,7 +164,7 @@ public class ReportServiceImpl implements ReportService {
             } else if (report.getReportType() == ReportType.COMIC) {
                 Comic comic = comicService.getComicEntityById(report.getTargetId());
                 if (comic != null) {
-                    targetTitle = "Truyện: " + comic.getTitle();
+                    targetTitle = "Comic: " + comic.getTitle();
                 }
             }
         } catch (Exception e) {

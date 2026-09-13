@@ -295,7 +295,7 @@ public class ComicServiceImpl implements ComicService {
     @Override
     public Comic getComicEntityById(Long id) {
         return comicRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy truyện với id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Comic not found with id: " + id));
     }
 
     @Override

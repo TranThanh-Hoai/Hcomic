@@ -83,7 +83,7 @@ public class GlobalExceptionHandler {
         ErrorResponse errorResponse = ErrorResponse.builder()
                 .status(HttpStatus.FORBIDDEN.value())
                 .error(HttpStatus.FORBIDDEN.getReasonPhrase())
-                .message("Tài khoản của bạn đã bị khóa do vi phạm quy định.")
+                .message("Your account has been locked due to a policy violation.")
                 .path(request.getRequestURI())
                 .timestamp(LocalDateTime.now())
                 .build();

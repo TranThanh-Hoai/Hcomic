@@ -14,13 +14,13 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ReportCreateRequest {
-    @NotNull(message = "Loại báo cáo không được để trống")
+    @NotNull(message = "Report type must not be null")
     private ReportType reportType;
 
-    @NotNull(message = "ID mục báo cáo không được để trống")
+    @NotNull(message = "Target ID must not be null")
     private Long targetId;
 
-    @NotNull(message = "Lý do báo cáo không được để trống")
+    @NotNull(message = "Reason must not be null")
     private ReportReason reason;
 
     private String description;

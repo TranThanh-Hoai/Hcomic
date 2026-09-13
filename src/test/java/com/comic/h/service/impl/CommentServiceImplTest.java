@@ -56,7 +56,7 @@ class CommentServiceImplTest {
     // ==========================================
 
     @Test
-    @DisplayName("Create Comment - Thêm comment vào Comic thành công")
+    @DisplayName("Create Comment - Successfully created on Comic")
     void createComment_OnComic_Success() {
         // Arrange
         Long comicId = 10L;
@@ -106,7 +106,7 @@ class CommentServiceImplTest {
     }
 
     @Test
-    @DisplayName("Create Comment - Thêm comment vào Chapter thành công")
+    @DisplayName("Create Comment - Successfully created on Chapter")
     void createComment_OnChapter_Success() {
         // Arrange
         Long comicId = 10L;
@@ -156,7 +156,7 @@ class CommentServiceImplTest {
     }
 
     @Test
-    @DisplayName("Create Comment - Ném ResourceNotFoundException khi username không tồn tại")
+    @DisplayName("Create Comment - Throws ResourceNotFoundException when username does not exist")
     void createComment_UserNotFound_ThrowsResourceNotFoundException() {
         // Arrange
         Long comicId = 10L;
@@ -175,7 +175,7 @@ class CommentServiceImplTest {
     }
 
     @Test
-    @DisplayName("Create Comment - Ném ResourceNotFoundException khi comic không tồn tại")
+    @DisplayName("Create Comment - Throws ResourceNotFoundException when comic does not exist")
     void createComment_ComicNotFound_ThrowsResourceNotFoundException() {
         // Arrange
         Long comicId = 999L;
@@ -200,7 +200,7 @@ class CommentServiceImplTest {
     // ==========================================
 
     @Test
-    @DisplayName("Update Comment - Tác giả sửa comment của mình thành công")
+    @DisplayName("Update Comment - Author successfully updates their comment")
     void updateComment_Success_ByAuthor() {
         // Arrange
         Long commentId = 1L;
@@ -236,7 +236,7 @@ class CommentServiceImplTest {
     }
 
     @Test
-    @DisplayName("Update Comment - Ném ForbiddenException khi người khác cố tình sửa comment")
+    @DisplayName("Update Comment - Throws ForbiddenException when unauthorized user attempts edit")
     void updateComment_Forbidden_WhenNotAuthor() {
         // Arrange
         Long commentId = 1L;
@@ -269,7 +269,7 @@ class CommentServiceImplTest {
     // ==========================================
 
     @Test
-    @DisplayName("Delete Comment - Tác giả xóa comment của mình thành công")
+    @DisplayName("Delete Comment - Author successfully deletes their comment")
     void deleteComment_Success_ByAuthor() {
         // Arrange
         Long commentId = 1L;
@@ -293,7 +293,7 @@ class CommentServiceImplTest {
     }
 
     @Test
-    @DisplayName("Delete Comment - Ném ForbiddenException khi người khác cố tình xóa comment")
+    @DisplayName("Delete Comment - Throws ForbiddenException when unauthorized user attempts delete")
     void deleteComment_Forbidden_WhenNotAuthor() {
         // Arrange
         Long commentId = 1L;

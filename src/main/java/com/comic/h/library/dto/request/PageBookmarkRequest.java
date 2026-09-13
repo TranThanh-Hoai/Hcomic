@@ -8,13 +8,13 @@ import lombok.Setter;
 @Setter
 public class PageBookmarkRequest {
 
-    @NotNull(message = "comicId không được để trống")
+    @NotNull(message = "comicId must not be null")
     private Long comicId;
 
-    @NotNull(message = "chapterId không được để trống")
+    @NotNull(message = "chapterId must not be null")
     private Long chapterId;
 
-    @NotNull(message = "pageNumber không được để trống")
+    @NotNull(message = "pageNumber must not be null")
     private Integer pageNumber;
 
     private String note;

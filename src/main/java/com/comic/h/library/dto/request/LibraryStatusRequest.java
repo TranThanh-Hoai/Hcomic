@@ -10,7 +10,7 @@ import lombok.Setter;
 @Setter
 public class LibraryStatusRequest {
 
-    @NotNull(message = "comicId không được để trống")
+    @NotNull(message = "comicId must not be null")
     private Long comicId;
 
     // Status: READING, FAVORITE, COMPLETED, READ_LATER. If null, removes from library.

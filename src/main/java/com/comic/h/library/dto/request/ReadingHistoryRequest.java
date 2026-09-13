@@ -8,10 +8,10 @@ import lombok.Setter;
 @Setter
 public class ReadingHistoryRequest {
 
-    @NotNull(message = "comicId không được để trống")
+    @NotNull(message = "comicId must not be null")
     private Long comicId;
 
-    @NotNull(message = "chapterId không được để trống")
+    @NotNull(message = "chapterId must not be null")
     private Long chapterId;
 
     private Integer pageNumber;

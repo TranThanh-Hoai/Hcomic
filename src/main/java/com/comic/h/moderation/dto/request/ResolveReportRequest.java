@@ -13,7 +13,7 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ResolveReportRequest {
-    @NotNull(message = "Hành động xử lý không được để trống")
+    @NotNull(message = "Action must not be null")
     private ReportAction action;
 
     private String resolutionNote;

@@ -94,10 +94,10 @@ public class PageBookmarkServiceImpl implements PageBookmarkService {
     public void deleteBookmark(Long bookmarkId, String username) {
         User user = userService.getUserEntityByUsername(username);
         PageBookmark bookmark = pageBookmarkRepository.findById(bookmarkId)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy bookmark với id: " + bookmarkId));
+                .orElseThrow(() -> new ResourceNotFoundException("Bookmark not found with id: " + bookmarkId));
 
         if (!bookmark.getUser().getUserId().equals(user.getUserId())) {
-            throw new ForbiddenException("Bạn không có quyền xóa bookmark này");
+            throw new ForbiddenException("You do not have permission to delete this bookmark");
         }
 
         pageBookmarkRepository.delete(bookmark);

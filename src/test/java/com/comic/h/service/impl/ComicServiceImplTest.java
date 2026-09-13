@@ -89,7 +89,7 @@ class ComicServiceImplTest {
     // ==========================================
 
     @Test
-    @DisplayName("Create Comic - Thành công với đầy đủ cover và thể loại")
+    @DisplayName("Create Comic - Success with cover image and genres")
     void createComic_Success() throws IOException {
         // Arrange
         mockSecurityUser("uploader_user");
@@ -161,7 +161,7 @@ class ComicServiceImplTest {
     }
 
     @Test
-    @DisplayName("Create Comic - Ném ResourceNotFoundException khi uploader không tồn tại")
+    @DisplayName("Create Comic - Throws ResourceNotFoundException when uploader does not exist")
     void createComic_UserNotFound_ThrowsResourceNotFoundException() {
         // Arrange
         mockSecurityUser("unknown_user");
@@ -184,7 +184,7 @@ class ComicServiceImplTest {
     // ==========================================
 
     @Test
-    @DisplayName("Get Comic By ID - Thành công khi ID tồn tại")
+    @DisplayName("Get Comic By ID - Success when ID exists")
     void getComicById_Success() {
         // Arrange
         Long comicId = 1L;
@@ -213,7 +213,7 @@ class ComicServiceImplTest {
     }
 
     @Test
-    @DisplayName("Get Comic By ID - Ném ResourceNotFoundException khi ID không tồn tại")
+    @DisplayName("Get Comic By ID - Throws ResourceNotFoundException when ID does not exist")
     void getComicById_NotFound_ThrowsResourceNotFoundException() {
         // Arrange
         when(comicRepository.findById(999L)).thenReturn(Optional.empty());
@@ -229,7 +229,7 @@ class ComicServiceImplTest {
     // ==========================================
 
     @Test
-    @DisplayName("Update Comic - Thành công bởi chủ sở hữu (Owner)")
+    @DisplayName("Update Comic - Success by owner")
     void updateComic_Success_ByOwner() {
         // Arrange
         Long comicId = 1L;
@@ -272,7 +272,7 @@ class ComicServiceImplTest {
     }
 
     @Test
-    @DisplayName("Update Comic - Ném ForbiddenException khi không phải chủ sở hữu hoặc admin")
+    @DisplayName("Update Comic - Throws ForbiddenException when not owner or admin")
     void updateComic_Forbidden_WhenNotOwnerOrAdmin() {
         // Arrange
         Long comicId = 1L;
@@ -302,7 +302,7 @@ class ComicServiceImplTest {
     // ==========================================
 
     @Test
-    @DisplayName("Delete Comic - Thành công bởi chủ sở hữu và lên lịch dọn dẹp file")
+    @DisplayName("Delete Comic - Success by owner and schedules file cleanup")
     void deleteComic_Success_ByOwner() {
         // Arrange
         Long comicId = 1L;
@@ -327,7 +327,7 @@ class ComicServiceImplTest {
     }
 
     @Test
-    @DisplayName("Delete Comic - Ném ForbiddenException khi không có quyền xóa")
+    @DisplayName("Delete Comic - Throws ForbiddenException when not permitted to delete")
     void deleteComic_Forbidden_WhenNotOwnerOrAdmin() {
         // Arrange
         Long comicId = 1L;

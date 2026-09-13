@@ -13,6 +13,6 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UpdateRoleRequest {
-    @NotNull(message = "Vai trò không được để trống")
+    @NotNull(message = "Role must not be null")
     private Role role;
 }

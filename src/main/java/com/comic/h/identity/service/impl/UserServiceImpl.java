@@ -23,13 +23,13 @@ public class UserServiceImpl implements UserService {
     @Override
     public User getUserEntityByUsername(String username) {
         return userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng: " + username));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + username));
     }
 
     @Override
     public User getUserEntityById(Long userId) {
         return userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng với id: " + userId));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
     }
 
     @Override

@@ -1,5 +1,6 @@
 package com.comic.h.identity.controller;
 
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -36,7 +37,7 @@ public class AdminUserController {
             @RequestParam(required = false) String query,
             @RequestParam(required = false) Role role,
             @RequestParam(required = false) Boolean isBanned,
-            @PageableDefault(size = 15, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+            @ParameterObject @PageableDefault(size = 15, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         return ResponseEntity.ok(adminUserService.searchUsers(query, role, isBanned, pageable));
     }
 

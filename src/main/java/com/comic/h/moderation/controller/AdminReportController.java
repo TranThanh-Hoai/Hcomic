@@ -1,5 +1,6 @@
 package com.comic.h.moderation.controller;
 
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -35,7 +36,7 @@ public class AdminReportController {
     public ResponseEntity<Page<ReportResponse>> getReports(
             @RequestParam(required = false) ReportType type,
             @RequestParam(required = false) ReportStatus status,
-            @PageableDefault(size = 15, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+            @ParameterObject @PageableDefault(size = 15, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         return ResponseEntity.ok(reportService.getReports(type, status, pageable));
     }
 

@@ -2,6 +2,7 @@ package com.comic.h.comic.controller;
 
 import java.util.List;
 
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
@@ -53,7 +54,7 @@ public class ComicController {
             @RequestParam(required = false) List<String> genres,
             @RequestParam(required = false) ComicStatus status,
             @RequestParam(required = false) String uploader,
-            @PageableDefault(page = 0, size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+            @ParameterObject @PageableDefault(page = 0, size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         String searchQuery = (query != null && !query.trim().isEmpty()) ? query : q;
         return ResponseEntity.ok(comicService.getAllComics(searchQuery, genre, genres, status, uploader, pageable));
     }
@@ -80,14 +81,14 @@ public class ComicController {
     @PreAuthorize("hasAnyRole('TRANSLATOR', 'ADMIN')")
     @GetMapping("/my-comics")
     public ResponseEntity<PageResponse<ComicResponse>> getMyComics(
-            @PageableDefault(page = 0, size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+            @ParameterObject @PageableDefault(page = 0, size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         return ResponseEntity.ok(comicService.getMyComics(pageable));
     }
 
     @GetMapping("/uploader/{uploader}")
     public ResponseEntity<PageResponse<ComicResponse>> getComicsByUploader(
             @PathVariable String uploader,
-            @PageableDefault(page = 0, size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+            @ParameterObject @PageableDefault(page = 0, size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         return ResponseEntity.ok(comicService.getComicsByUploader(uploader, pageable));
     }
 

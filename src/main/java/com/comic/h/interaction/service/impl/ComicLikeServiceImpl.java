@@ -5,7 +5,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.comic.h.comic.entity.Comic;
 import com.comic.h.comic.service.ComicService;
-import com.comic.h.common.exception.ResourceNotFoundException;
 import com.comic.h.identity.entity.User;
 import com.comic.h.identity.service.UserService;
 import com.comic.h.interaction.dto.response.ComicLikeResponse;

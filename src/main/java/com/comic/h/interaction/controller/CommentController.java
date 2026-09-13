@@ -1,5 +1,6 @@
 package com.comic.h.interaction.controller;
 
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
@@ -41,7 +42,7 @@ public class CommentController {
     @GetMapping("/api/comics/{comicId}/comments")
     public ResponseEntity<PageResponse<CommentResponse>> getCommentsByComicId(
             @PathVariable Long comicId,
-            @PageableDefault(page = 0, size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+            @ParameterObject @PageableDefault(page = 0, size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         return ResponseEntity.ok(commentService.getCommentsByComicId(comicId, pageable));
     }
 
@@ -57,7 +58,7 @@ public class CommentController {
     @GetMapping("/api/chapters/{chapterId}/comments")
     public ResponseEntity<PageResponse<CommentResponse>> getCommentsByChapterId(
             @PathVariable Long chapterId,
-            @PageableDefault(page = 0, size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+            @ParameterObject @PageableDefault(page = 0, size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         return ResponseEntity.ok(commentService.getCommentsByChapterId(chapterId, pageable));
     }
 

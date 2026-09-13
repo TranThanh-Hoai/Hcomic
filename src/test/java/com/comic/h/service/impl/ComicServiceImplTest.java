@@ -34,7 +34,7 @@ import com.comic.h.common.storage.FileStorageService;
 import com.comic.h.common.util.ImageProcessor;
 import com.comic.h.identity.entity.User;
 import com.comic.h.identity.enums.Role;
-import com.comic.h.identity.repository.UserRepository;
+import com.comic.h.identity.service.UserService;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -56,7 +56,7 @@ class ComicServiceImplTest {
     private ChapterImageRepository chapterImageRepository;
 
     @Mock
-    private UserRepository userRepository;
+    private UserService userService;
 
     @Mock
     private FileStorageService fileStorageService;
@@ -99,7 +99,7 @@ class ComicServiceImplTest {
                 .username("uploader_user")
                 .role(Role.USER)
                 .build();
-        when(userRepository.findByUsername("uploader_user")).thenReturn(Optional.of(uploader));
+        when(userService.getUserEntityByUsername("uploader_user")).thenReturn(uploader);
 
         ComicRequest request = ComicRequest.builder()
                 .title("Solo Leveling")
@@ -165,7 +165,7 @@ class ComicServiceImplTest {
     void createComic_UserNotFound_ThrowsResourceNotFoundException() {
         // Arrange
         mockSecurityUser("unknown_user");
-        when(userRepository.findByUsername("unknown_user")).thenReturn(Optional.empty());
+        when(userService.getUserEntityByUsername("unknown_user")).thenThrow(new ResourceNotFoundException("User not found with username: unknown_user"));
 
         ComicRequest request = ComicRequest.builder()
                 .title("Solo Leveling")

@@ -9,15 +9,15 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.comic.h.comic.entity.Chapter;
 import com.comic.h.comic.entity.Comic;
-import com.comic.h.comic.repository.ChapterRepository;
-import com.comic.h.comic.repository.ComicRepository;
+import com.comic.h.comic.service.ChapterService;
+import com.comic.h.comic.service.ComicService;
 import com.comic.h.common.exception.ResourceNotFoundException;
 import com.comic.h.identity.dto.request.BanUserRequest;
 import com.comic.h.identity.entity.User;
-import com.comic.h.identity.repository.UserRepository;
 import com.comic.h.identity.service.AdminUserService;
+import com.comic.h.identity.service.UserService;
 import com.comic.h.interaction.entity.Comment;
-import com.comic.h.interaction.repository.CommentRepository;
+import com.comic.h.interaction.service.CommentService;
 import com.comic.h.moderation.dto.request.ReportCreateRequest;
 import com.comic.h.moderation.dto.request.ResolveReportRequest;
 import com.comic.h.moderation.dto.response.ReportResponse;
@@ -37,10 +37,10 @@ import lombok.RequiredArgsConstructor;
 public class ReportServiceImpl implements ReportService {
 
     private final ReportRepository reportRepository;
-    private final UserRepository userRepository;
-    private final CommentRepository commentRepository;
-    private final ChapterRepository chapterRepository;
-    private final ComicRepository comicRepository;
+    private final UserService userService;
+    private final CommentService commentService;
+    private final ChapterService chapterService;
+    private final ComicService comicService;
     private final AdminUserService adminUserService;
     private final ReportMapper reportMapper;
 
@@ -102,14 +102,20 @@ public class ReportServiceImpl implements ReportService {
         return mapToReportResponse(savedReport);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public long countPendingReports() {
+        return reportRepository.countByStatus(ReportStatus.PENDING);
+    }
+
     private void deleteTargetContent(ReportType type, Long targetId) {
         try {
             if (type == ReportType.COMMENT) {
-                commentRepository.deleteById(targetId);
+                commentService.deleteCommentById(targetId);
             } else if (type == ReportType.CHAPTER) {
-                chapterRepository.deleteById(targetId);
+                chapterService.deleteChapter(targetId);
             } else if (type == ReportType.COMIC) {
-                comicRepository.deleteById(targetId);
+                comicService.deleteComic(targetId);
             }
         } catch (Exception e) {
             // Log & handle deletion error gracefully if already deleted
@@ -117,12 +123,19 @@ public class ReportServiceImpl implements ReportService {
     }
 
     private Long getTargetAuthorId(ReportType type, Long targetId) {
-        if (type == ReportType.COMMENT) {
-            return commentRepository.findById(targetId).map(c -> c.getUser().getUserId()).orElse(null);
-        } else if (type == ReportType.COMIC) {
-            return comicRepository.findById(targetId).map(c -> c.getUploader() != null ? c.getUploader().getUserId() : null).orElse(null);
-        } else if (type == ReportType.CHAPTER) {
-            return chapterRepository.findById(targetId).map(ch -> ch.getComic() != null && ch.getComic().getUploader() != null ? ch.getComic().getUploader().getUserId() : null).orElse(null);
+        try {
+            if (type == ReportType.COMMENT) {
+                Comment comment = commentService.getCommentEntityById(targetId);
+                return comment != null && comment.getUser() != null ? comment.getUser().getUserId() : null;
+            } else if (type == ReportType.COMIC) {
+                Comic comic = comicService.getComicEntityById(targetId);
+                return comic != null && comic.getUploader() != null ? comic.getUploader().getUserId() : null;
+            } else if (type == ReportType.CHAPTER) {
+                Chapter chapter = chapterService.getChapterEntityById(targetId);
+                return chapter != null && chapter.getComic() != null && chapter.getComic().getUploader() != null ? chapter.getComic().getUploader().getUserId() : null;
+            }
+        } catch (Exception e) {
+            // fallback
         }
         return null;
     }
@@ -132,25 +145,24 @@ public class ReportServiceImpl implements ReportService {
         if (auth == null || !auth.isAuthenticated()) {
             throw new ResourceNotFoundException("User not authenticated");
         }
-        return userRepository.findByUsername(auth.getName())
-                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + auth.getName()));
+        return userService.getUserEntityByUsername(auth.getName());
     }
 
     private ReportResponse mapToReportResponse(Report report) {
         String targetTitle = "Mục #" + report.getTargetId();
         try {
             if (report.getReportType() == ReportType.COMMENT) {
-                Comment comment = commentRepository.findById(report.getTargetId()).orElse(null);
+                Comment comment = commentService.getCommentEntityById(report.getTargetId());
                 if (comment != null) {
                     targetTitle = "Bình luận: \"" + (comment.getContent().length() > 30 ? comment.getContent().substring(0, 30) + "..." : comment.getContent()) + "\"";
                 }
             } else if (report.getReportType() == ReportType.CHAPTER) {
-                Chapter chapter = chapterRepository.findById(report.getTargetId()).orElse(null);
+                Chapter chapter = chapterService.getChapterEntityById(report.getTargetId());
                 if (chapter != null) {
                     targetTitle = "Chapter " + chapter.getChapterNumber() + (chapter.getComic() != null ? " (" + chapter.getComic().getTitle() + ")" : "");
                 }
             } else if (report.getReportType() == ReportType.COMIC) {
-                Comic comic = comicRepository.findById(report.getTargetId()).orElse(null);
+                Comic comic = comicService.getComicEntityById(report.getTargetId());
                 if (comic != null) {
                     targetTitle = "Truyện: " + comic.getTitle();
                 }

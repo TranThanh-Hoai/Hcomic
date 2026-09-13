@@ -7,13 +7,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.comic.h.comic.entity.Chapter;
 import com.comic.h.comic.entity.Comic;
-import com.comic.h.comic.repository.ChapterRepository;
-import com.comic.h.comic.repository.ComicRepository;
+import com.comic.h.comic.service.ChapterService;
+import com.comic.h.comic.service.ComicService;
 import com.comic.h.common.dto.response.PageResponse;
 import com.comic.h.common.exception.ForbiddenException;
 import com.comic.h.common.exception.ResourceNotFoundException;
 import com.comic.h.identity.entity.User;
-import com.comic.h.identity.repository.UserRepository;
+import com.comic.h.identity.service.UserService;
 import com.comic.h.interaction.dto.request.CommentRequest;
 import com.comic.h.interaction.dto.response.CommentResponse;
 import com.comic.h.interaction.entity.Comment;
@@ -28,9 +28,9 @@ import lombok.RequiredArgsConstructor;
 public class CommentServiceImpl implements CommentService {
 
     private final CommentRepository commentRepository;
-    private final ComicRepository comicRepository;
-    private final ChapterRepository chapterRepository;
-    private final UserRepository userRepository;
+    private final ComicService comicService;
+    private final ChapterService chapterService;
+    private final UserService userService;
     private final CommentMapper commentMapper;
 
     @Override
@@ -40,8 +40,8 @@ public class CommentServiceImpl implements CommentService {
             return createChapterComment(request.getChapterId(), request, username);
         }
 
-        User user = findUserByUsername(username);
-        Comic comic = findComicById(comicId);
+        User user = userService.getUserEntityByUsername(username);
+        Comic comic = comicService.getComicEntityById(comicId);
 
         Comment comment = Comment.builder()
                 .content(request.getContent().trim())
@@ -57,9 +57,8 @@ public class CommentServiceImpl implements CommentService {
     @Override
     @Transactional
     public CommentResponse createChapterComment(Long chapterId, CommentRequest request, String username) {
-        User user = findUserByUsername(username);
-        Chapter chapter = chapterRepository.findById(chapterId)
-                .orElseThrow(() -> new ResourceNotFoundException("Chapter not found with id: " + chapterId));
+        User user = userService.getUserEntityByUsername(username);
+        Chapter chapter = chapterService.getChapterEntityById(chapterId);
         Comic comic = chapter.getComic();
 
         Comment comment = Comment.builder()
@@ -95,9 +94,7 @@ public class CommentServiceImpl implements CommentService {
     @Override
     @Transactional(readOnly = true)
     public PageResponse<CommentResponse> getCommentsByComicId(Long comicId, Pageable pageable) {
-        if (!comicRepository.existsById(comicId)) {
-            throw new ResourceNotFoundException("Comic not found with id: " + comicId);
-        }
+        comicService.getComicEntityById(comicId);
 
         Page<Comment> page = commentRepository.findByComicIdAndChapterIsNull(comicId, pageable);
         Page<CommentResponse> responsePage = page.map(commentMapper::toResponse);
@@ -107,23 +104,23 @@ public class CommentServiceImpl implements CommentService {
     @Override
     @Transactional(readOnly = true)
     public PageResponse<CommentResponse> getCommentsByChapterId(Long chapterId, Pageable pageable) {
-        if (!chapterRepository.existsById(chapterId)) {
-            throw new ResourceNotFoundException("Chapter not found with id: " + chapterId);
-        }
+        chapterService.getChapterEntityById(chapterId);
 
         Page<Comment> page = commentRepository.findByChapterId(chapterId, pageable);
         Page<CommentResponse> responsePage = page.map(commentMapper::toResponse);
         return PageResponse.from(responsePage);
     }
 
-    private User findUserByUsername(String username) {
-        return userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + username));
+    @Override
+    public Comment getCommentEntityById(Long commentId) {
+        return findCommentById(commentId);
     }
 
-    private Comic findComicById(Long comicId) {
-        return comicRepository.findById(comicId)
-                .orElseThrow(() -> new ResourceNotFoundException("Comic not found with id: " + comicId));
+    @Override
+    @Transactional
+    public void deleteCommentById(Long commentId) {
+        Comment comment = findCommentById(commentId);
+        commentRepository.delete(comment);
     }
 
     private Comment findCommentById(Long commentId) {

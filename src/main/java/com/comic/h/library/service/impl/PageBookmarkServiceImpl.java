@@ -9,13 +9,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.comic.h.comic.entity.Chapter;
 import com.comic.h.comic.entity.Comic;
-import com.comic.h.comic.repository.ChapterRepository;
-import com.comic.h.comic.repository.ComicRepository;
-import com.comic.h.common.exception.BadRequestException;
+import com.comic.h.comic.service.ChapterService;
+import com.comic.h.comic.service.ComicService;
 import com.comic.h.common.exception.ForbiddenException;
 import com.comic.h.common.exception.ResourceNotFoundException;
 import com.comic.h.identity.entity.User;
-import com.comic.h.identity.repository.UserRepository;
+import com.comic.h.identity.service.UserService;
 import com.comic.h.library.dto.request.PageBookmarkRequest;
 import com.comic.h.library.dto.response.PageBookmarkResponse;
 import com.comic.h.library.entity.PageBookmark;
@@ -30,20 +29,18 @@ import lombok.RequiredArgsConstructor;
 public class PageBookmarkServiceImpl implements PageBookmarkService {
 
     private final PageBookmarkRepository pageBookmarkRepository;
-    private final ComicRepository comicRepository;
-    private final ChapterRepository chapterRepository;
-    private final UserRepository userRepository;
+    private final ComicService comicService;
+    private final ChapterService chapterService;
+    private final UserService userService;
     private final PageBookmarkMapper pageBookmarkMapper;
 
     @Override
     @Transactional
     public PageBookmarkResponse createOrUpdateBookmark(PageBookmarkRequest request, String username) {
-        User user = findUserByUsername(username);
-        Comic comic = comicRepository.findById(request.getComicId())
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy truyện với id: " + request.getComicId()));
-        Chapter chapter = chapterRepository.findById(request.getChapterId())
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy chương với id: " + request.getChapterId()));
-        validateChapterBelongsToComic(chapter, comic);
+        User user = userService.getUserEntityByUsername(username);
+        Comic comic = comicService.getComicEntityById(request.getComicId());
+        Chapter chapter = chapterService.getChapterEntityById(request.getChapterId());
+        chapterService.validateChapterBelongsToComic(chapter, comic);
 
         Optional<PageBookmark> existingOpt = pageBookmarkRepository.findByUserUserIdAndChapterIdAndPageNumber(
                 user.getUserId(), chapter.getId(), request.getPageNumber());
@@ -71,7 +68,7 @@ public class PageBookmarkServiceImpl implements PageBookmarkService {
     @Override
     @Transactional(readOnly = true)
     public List<PageBookmarkResponse> getBookmarksByComic(Long comicId, String username) {
-        User user = findUserByUsername(username);
+        User user = userService.getUserEntityByUsername(username);
         return pageBookmarkRepository.findByUserUserIdAndComicIdOrderByCreatedAtDesc(user.getUserId(), comicId)
                 .stream().map(pageBookmarkMapper::toResponse).collect(Collectors.toList());
     }
@@ -79,7 +76,7 @@ public class PageBookmarkServiceImpl implements PageBookmarkService {
     @Override
     @Transactional(readOnly = true)
     public List<PageBookmarkResponse> getBookmarksByChapter(Long chapterId, String username) {
-        User user = findUserByUsername(username);
+        User user = userService.getUserEntityByUsername(username);
         return pageBookmarkRepository.findByUserUserIdAndChapterIdOrderByPageNumberAsc(user.getUserId(), chapterId)
                 .stream().map(pageBookmarkMapper::toResponse).collect(Collectors.toList());
     }
@@ -87,7 +84,7 @@ public class PageBookmarkServiceImpl implements PageBookmarkService {
     @Override
     @Transactional(readOnly = true)
     public List<PageBookmarkResponse> getUserBookmarks(String username) {
-        User user = findUserByUsername(username);
+        User user = userService.getUserEntityByUsername(username);
         return pageBookmarkRepository.findAllByUserIdOrderByCreatedAtDesc(user.getUserId())
                 .stream().map(pageBookmarkMapper::toResponse).collect(Collectors.toList());
     }
@@ -95,7 +92,7 @@ public class PageBookmarkServiceImpl implements PageBookmarkService {
     @Override
     @Transactional
     public void deleteBookmark(Long bookmarkId, String username) {
-        User user = findUserByUsername(username);
+        User user = userService.getUserEntityByUsername(username);
         PageBookmark bookmark = pageBookmarkRepository.findById(bookmarkId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy bookmark với id: " + bookmarkId));
 
@@ -104,16 +101,5 @@ public class PageBookmarkServiceImpl implements PageBookmarkService {
         }
 
         pageBookmarkRepository.delete(bookmark);
-    }
-
-    private User findUserByUsername(String username) {
-        return userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng: " + username));
-    }
-
-    private void validateChapterBelongsToComic(Chapter chapter, Comic comic) {
-        if (!chapter.getComic().getId().equals(comic.getId())) {
-            throw new BadRequestException("Chapter does not belong to the requested comic");
-        }
     }
 }

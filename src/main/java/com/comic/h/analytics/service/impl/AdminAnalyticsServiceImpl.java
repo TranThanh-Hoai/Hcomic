@@ -16,10 +16,9 @@ import com.comic.h.analytics.dto.response.TrendingComicResponse;
 import com.comic.h.analytics.dto.response.UserGrowthPoint;
 import com.comic.h.analytics.service.AdminAnalyticsService;
 import com.comic.h.comic.entity.Comic;
-import com.comic.h.comic.repository.ComicRepository;
-import com.comic.h.identity.repository.UserRepository;
-import com.comic.h.moderation.enums.ReportStatus;
-import com.comic.h.moderation.repository.ReportRepository;
+import com.comic.h.comic.service.ComicService;
+import com.comic.h.identity.service.UserService;
+import com.comic.h.moderation.service.ReportService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -28,21 +27,21 @@ import lombok.RequiredArgsConstructor;
 @Transactional(readOnly = true)
 public class AdminAnalyticsServiceImpl implements AdminAnalyticsService {
 
-    private final UserRepository userRepository;
-    private final ComicRepository comicRepository;
-    private final ReportRepository reportRepository;
+    private final UserService userService;
+    private final ComicService comicService;
+    private final ReportService reportService;
 
     public AdminOverviewResponse getOverview() {
         LocalDateTime startOfToday = LocalDateTime.of(LocalDate.now(), LocalTime.MIN);
         LocalDateTime startOfWeek = LocalDateTime.of(LocalDate.now().minusDays(7), LocalTime.MIN);
 
-        long totalUsers = userRepository.count();
-        long totalComics = comicRepository.count();
-        long totalReads = comicRepository.sumTotalViewCount();
-        long newUsersToday = userRepository.countByCreatedAtAfter(startOfToday);
-        long newUsersThisWeek = userRepository.countByCreatedAtAfter(startOfWeek);
-        long pendingReportsCount = reportRepository.countByStatus(ReportStatus.PENDING);
-        long bannedUsersCount = userRepository.countByIsBannedTrue();
+        long totalUsers = userService.countTotalUsers();
+        long totalComics = comicService.countTotalComics();
+        long totalReads = comicService.sumTotalViewCount();
+        long newUsersToday = userService.countNewUsersAfter(startOfToday);
+        long newUsersThisWeek = userService.countNewUsersAfter(startOfWeek);
+        long pendingReportsCount = reportService.countPendingReports();
+        long bannedUsersCount = userService.countBannedUsers();
 
         return AdminOverviewResponse.builder()
                 .totalUsers(totalUsers)
@@ -67,7 +66,7 @@ public class AdminAnalyticsServiceImpl implements AdminAnalyticsService {
         }
 
         Pageable pageable = PageRequest.of(0, limit);
-        List<Object[]> rawResults = comicRepository.findTrendingComicsSince(sinceDate, pageable);
+        List<Object[]> rawResults = comicService.findTrendingComicsSince(sinceDate, pageable);
 
         List<TrendingComicResponse> responses = new ArrayList<>();
         for (Object[] row : rawResults) {
@@ -89,7 +88,7 @@ public class AdminAnalyticsServiceImpl implements AdminAnalyticsService {
         // If not enough history data, fallback to top comics by total viewCount
         if (responses.size() < limit) {
             Pageable fallbackPageable = PageRequest.of(0, limit, org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "viewCount", "createdAt"));
-            List<Comic> topComics = comicRepository.findAll(fallbackPageable).getContent();
+            List<Comic> topComics = comicService.findAllComics(fallbackPageable).getContent();
             for (Comic c : topComics) {
                 boolean exists = responses.stream().anyMatch(r -> r.getComicId().equals(c.getId()));
                 if (!exists) {
@@ -116,7 +115,7 @@ public class AdminAnalyticsServiceImpl implements AdminAnalyticsService {
         LocalDate startDate = today.minusDays(validDays - 1);
         LocalDateTime startDateTime = LocalDateTime.of(startDate, LocalTime.MIN);
 
-        List<Object[]> rawCounts = userRepository.countUsersGroupedByDate(startDateTime);
+        List<Object[]> rawCounts = userService.countUsersGroupedByDate(startDateTime);
         java.util.Map<String, Long> dateCountMap = new java.util.HashMap<>();
         for (Object[] row : rawCounts) {
             if (row != null && row.length >= 2 && row[0] != null) {

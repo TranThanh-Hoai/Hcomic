@@ -1,4 +1,4 @@
-package com.comic.h.common.config;
+package com.comic.h.identity.config;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;

@@ -4,10 +4,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.comic.h.comic.entity.Comic;
-import com.comic.h.comic.repository.ComicRepository;
+import com.comic.h.comic.service.ComicService;
 import com.comic.h.common.exception.ResourceNotFoundException;
 import com.comic.h.identity.entity.User;
-import com.comic.h.identity.repository.UserRepository;
+import com.comic.h.identity.service.UserService;
 import com.comic.h.interaction.dto.response.ComicLikeResponse;
 import com.comic.h.interaction.entity.ComicLike;
 import com.comic.h.interaction.repository.ComicLikeRepository;
@@ -20,8 +20,8 @@ import lombok.RequiredArgsConstructor;
 public class ComicLikeServiceImpl implements ComicLikeService {
 
     private final ComicLikeRepository comicLikeRepository;
-    private final ComicRepository comicRepository;
-    private final UserRepository userRepository;
+    private final ComicService comicService;
+    private final UserService userService;
 
     @Override
     @Transactional
@@ -63,13 +63,11 @@ public class ComicLikeServiceImpl implements ComicLikeService {
     }
 
     private User findUserByUsername(String username) {
-        return userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + username));
+        return userService.getUserEntityByUsername(username);
     }
 
     private Comic findComicById(Long comicId) {
-        return comicRepository.findById(comicId)
-                .orElseThrow(() -> new ResourceNotFoundException("Comic not found with id: " + comicId));
+        return comicService.getComicEntityById(comicId);
     }
 
     private ComicLikeResponse buildResponse(boolean isLiked, long likeCount) {

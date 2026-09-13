@@ -18,4 +18,6 @@ public interface ReportService {
     Page<ReportResponse> getReports(ReportType reportType, ReportStatus status, Pageable pageable);
 
     ReportResponse resolveReport(Long reportId, ResolveReportRequest request);
-}
+
+    long countPendingReports();
+}

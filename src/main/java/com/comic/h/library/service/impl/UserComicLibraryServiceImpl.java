@@ -8,10 +8,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.comic.h.comic.entity.Comic;
-import com.comic.h.comic.repository.ComicRepository;
-import com.comic.h.common.exception.ResourceNotFoundException;
+import com.comic.h.comic.service.ComicService;
 import com.comic.h.identity.entity.User;
-import com.comic.h.identity.repository.UserRepository;
+import com.comic.h.identity.service.UserService;
 import com.comic.h.library.dto.request.LibraryStatusRequest;
 import com.comic.h.library.dto.response.UserComicLibraryResponse;
 import com.comic.h.library.entity.ReadingHistory;
@@ -30,16 +29,15 @@ public class UserComicLibraryServiceImpl implements UserComicLibraryService {
 
     private final UserComicLibraryRepository userComicLibraryRepository;
     private final ReadingHistoryRepository readingHistoryRepository;
-    private final ComicRepository comicRepository;
-    private final UserRepository userRepository;
+    private final ComicService comicService;
+    private final UserService userService;
     private final UserComicLibraryMapper userComicLibraryMapper;
 
     @Override
     @Transactional
     public UserComicLibraryResponse updateLibraryStatus(LibraryStatusRequest request, String username) {
-        User user = findUserByUsername(username);
-        Comic comic = comicRepository.findById(request.getComicId())
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy truyện với id: " + request.getComicId()));
+        User user = userService.getUserEntityByUsername(username);
+        Comic comic = comicService.getComicEntityById(request.getComicId());
 
         Optional<UserComicLibrary> existingOpt = userComicLibraryRepository.findByUserUserIdAndComicId(user.getUserId(), comic.getId());
 
@@ -68,7 +66,7 @@ public class UserComicLibraryServiceImpl implements UserComicLibraryService {
     @Override
     @Transactional(readOnly = true)
     public List<UserComicLibraryResponse> getUserLibrary(String username, ShelfStatus status) {
-        User user = findUserByUsername(username);
+        User user = userService.getUserEntityByUsername(username);
         List<UserComicLibrary> items = userComicLibraryRepository.findByUserIdAndStatus(user.getUserId(), status);
         if (items.isEmpty()) {
             return List.of();
@@ -92,16 +90,13 @@ public class UserComicLibraryServiceImpl implements UserComicLibraryService {
     @Override
     @Transactional(readOnly = true)
     public UserComicLibraryResponse getComicLibraryStatus(Long comicId, String username) {
-        User user = findUserByUsername(username);
+        User user = userService.getUserEntityByUsername(username);
         return userComicLibraryRepository.findByUserUserIdAndComicId(user.getUserId(), comicId)
                 .map(this::mapToResponse)
                 .orElse(null);
     }
 
-    private User findUserByUsername(String username) {
-        return userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng: " + username));
-    }
+
 
     private UserComicLibraryResponse mapToResponse(UserComicLibrary library) {
         // Find reading progress for this comic if available

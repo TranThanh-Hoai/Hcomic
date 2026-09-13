@@ -1,4 +1,4 @@
-package com.comic.h.analytics.dto.response;
+package com.comic.h.common.dto.response;
 
 import java.time.LocalDateTime;
 import java.util.Map;

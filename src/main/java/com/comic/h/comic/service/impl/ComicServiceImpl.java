@@ -37,7 +37,7 @@ import com.comic.h.common.storage.FileStorageService;
 import com.comic.h.common.util.ImageProcessor;
 import com.comic.h.common.util.SlugUtils;
 import com.comic.h.identity.entity.User;
-import com.comic.h.identity.repository.UserRepository;
+import com.comic.h.identity.service.UserService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -51,7 +51,7 @@ public class ComicServiceImpl implements ComicService {
     private final ComicRepository comicRepository;
     private final GenreRepository genreRepository;
     private final ChapterImageRepository chapterImageRepository;
-    private final UserRepository userRepository;
+    private final UserService userService;
     private final FileStorageService fileStorageService;
     private final ImageProcessor imageProcessor;
     private final ComicSecurityEvaluator comicSecurityEvaluator;
@@ -71,8 +71,7 @@ public class ComicServiceImpl implements ComicService {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
 
-        User uploader = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + username));
+        User uploader = userService.getUserEntityByUsername(username);
 
         String coverImagePath = saveCoverImage(cover, slug);
 
@@ -292,4 +291,31 @@ public class ComicServiceImpl implements ComicService {
             throw new RuntimeException("Failed to upload comic cover image: " + e.getMessage(), e);
         }
     }
+
+    @Override
+    public Comic getComicEntityById(Long id) {
+        return comicRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy truyện với id: " + id));
+    }
+
+    @Override
+    public long countTotalComics() {
+        return comicRepository.count();
+    }
+
+    @Override
+    public long sumTotalViewCount() {
+        return comicRepository.sumTotalViewCount();
+    }
+
+    @Override
+    public List<Object[]> findTrendingComicsSince(java.time.LocalDateTime sinceDate, org.springframework.data.domain.Pageable pageable) {
+        return comicRepository.findTrendingComicsSince(sinceDate, pageable);
+    }
+
+    @Override
+    public org.springframework.data.domain.Page<Comic> findAllComics(org.springframework.data.domain.Pageable pageable) {
+        return comicRepository.findAll(pageable);
+    }
 }
+

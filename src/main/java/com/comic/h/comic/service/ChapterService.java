@@ -5,6 +5,8 @@ import java.util.List;
 import com.comic.h.comic.dto.request.ChapterRequest;
 import com.comic.h.comic.dto.response.ChapterDetailResponse;
 import com.comic.h.comic.dto.response.ChapterResponse;
+import com.comic.h.comic.entity.Chapter;
+import com.comic.h.comic.entity.Comic;
 
 public interface ChapterService {
 
@@ -21,4 +23,9 @@ public interface ChapterService {
     ChapterResponse updateChapter(Long chapterId, ChapterRequest request);
 
     void deleteChapter(Long chapterId);
+
+    Chapter getChapterEntityById(Long chapterId);
+
+    void validateChapterBelongsToComic(Chapter chapter, Comic comic);
 }
+

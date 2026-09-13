@@ -203,4 +203,18 @@ public class ChapterServiceImpl implements ChapterService {
         }
         return String.valueOf(chapterNumber);
     }
+
+    @Override
+    public Chapter getChapterEntityById(Long chapterId) {
+        return chapterRepository.findById(chapterId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy chương với id: " + chapterId));
+    }
+
+    @Override
+    public void validateChapterBelongsToComic(Chapter chapter, Comic comic) {
+        if (chapter == null || comic == null || chapter.getComic() == null || !chapter.getComic().getId().equals(comic.getId())) {
+            throw new BadRequestException("Chapter does not belong to the requested comic");
+        }
+    }
 }
+

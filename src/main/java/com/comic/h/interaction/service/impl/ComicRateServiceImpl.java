@@ -4,10 +4,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.comic.h.comic.entity.Comic;
-import com.comic.h.comic.repository.ComicRepository;
+import com.comic.h.comic.service.ComicService;
 import com.comic.h.common.exception.ResourceNotFoundException;
 import com.comic.h.identity.entity.User;
-import com.comic.h.identity.repository.UserRepository;
+import com.comic.h.identity.service.UserService;
 import com.comic.h.interaction.dto.request.ComicRateRequest;
 import com.comic.h.interaction.dto.response.ComicRateResponse;
 import com.comic.h.interaction.entity.ComicRate;
@@ -22,8 +22,8 @@ import lombok.RequiredArgsConstructor;
 public class ComicRateServiceImpl implements ComicRateService {
 
     private final ComicRateRepository ratingRepository;
-    private final ComicRepository comicRepository;
-    private final UserRepository userRepository;
+    private final ComicService comicService;
+    private final UserService userService;
     private final ComicRateMapper comicRateMapper;
 
     @Override
@@ -36,11 +36,8 @@ public class ComicRateServiceImpl implements ComicRateService {
     @Override
     @Transactional
     public ComicRateResponse rateComic(ComicRateRequest request, String username) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + username));
-
-        Comic comic = comicRepository.findById(request.getComicId())
-                .orElseThrow(() -> new ResourceNotFoundException("Comic not found with id: " + request.getComicId()));
+        User user = userService.getUserEntityByUsername(username);
+        Comic comic = comicService.getComicEntityById(request.getComicId());
 
         ComicRate rating = ratingRepository.findByUserUsernameAndComicId(username, request.getComicId())
                 .orElseGet(() -> ComicRate.builder()

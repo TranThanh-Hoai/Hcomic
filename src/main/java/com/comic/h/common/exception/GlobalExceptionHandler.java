@@ -13,7 +13,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import com.comic.h.analytics.dto.response.ErrorResponse;
+import com.comic.h.common.dto.response.ErrorResponse;
 
 import jakarta.servlet.http.HttpServletRequest;
 

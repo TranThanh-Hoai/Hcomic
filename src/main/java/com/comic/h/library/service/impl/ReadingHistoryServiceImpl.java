@@ -9,12 +9,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.comic.h.comic.entity.Chapter;
 import com.comic.h.comic.entity.Comic;
-import com.comic.h.comic.repository.ChapterRepository;
-import com.comic.h.comic.repository.ComicRepository;
-import com.comic.h.common.exception.BadRequestException;
-import com.comic.h.common.exception.ResourceNotFoundException;
+import com.comic.h.comic.service.ChapterService;
+import com.comic.h.comic.service.ComicService;
 import com.comic.h.identity.entity.User;
-import com.comic.h.identity.repository.UserRepository;
+import com.comic.h.identity.service.UserService;
 import com.comic.h.library.dto.request.ReadingHistoryRequest;
 import com.comic.h.library.dto.response.ReadingHistoryResponse;
 import com.comic.h.library.entity.ReadingHistory;
@@ -33,20 +31,18 @@ public class ReadingHistoryServiceImpl implements ReadingHistoryService {
 
     private final ReadingHistoryRepository readingHistoryRepository;
     private final UserComicLibraryRepository userComicLibraryRepository;
-    private final ComicRepository comicRepository;
-    private final ChapterRepository chapterRepository;
-    private final UserRepository userRepository;
+    private final ComicService comicService;
+    private final ChapterService chapterService;
+    private final UserService userService;
     private final ReadingHistoryMapper readingHistoryMapper;
 
     @Override
     @Transactional
     public ReadingHistoryResponse saveOrUpdateProgress(ReadingHistoryRequest request, String username) {
-        User user = findUserByUsername(username);
-        Comic comic = comicRepository.findById(request.getComicId())
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy truyện với id: " + request.getComicId()));
-        Chapter chapter = chapterRepository.findById(request.getChapterId())
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy chương với id: " + request.getChapterId()));
-        validateChapterBelongsToComic(chapter, comic);
+        User user = userService.getUserEntityByUsername(username);
+        Comic comic = comicService.getComicEntityById(request.getComicId());
+        Chapter chapter = chapterService.getChapterEntityById(request.getChapterId());
+        chapterService.validateChapterBelongsToComic(chapter, comic);
 
         Optional<ReadingHistory> existingOpt = readingHistoryRepository.findByUserUserIdAndComicId(user.getUserId(), comic.getId());
 
@@ -89,7 +85,7 @@ public class ReadingHistoryServiceImpl implements ReadingHistoryService {
     @Override
     @Transactional(readOnly = true)
     public List<ReadingHistoryResponse> getUserReadingHistory(String username) {
-        User user = findUserByUsername(username);
+        User user = userService.getUserEntityByUsername(username);
         List<ReadingHistory> histories = readingHistoryRepository.findAllByUserIdOrderByUpdatedAtDesc(user.getUserId());
         return histories.stream().map(readingHistoryMapper::toResponse).collect(Collectors.toList());
     }
@@ -97,20 +93,9 @@ public class ReadingHistoryServiceImpl implements ReadingHistoryService {
     @Override
     @Transactional(readOnly = true)
     public ReadingHistoryResponse getProgressByComicId(Long comicId, String username) {
-        User user = findUserByUsername(username);
+        User user = userService.getUserEntityByUsername(username);
         return readingHistoryRepository.findByUserUserIdAndComicId(user.getUserId(), comicId)
                 .map(readingHistoryMapper::toResponse)
                 .orElse(null);
-    }
-
-    private User findUserByUsername(String username) {
-        return userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng: " + username));
-    }
-
-    private void validateChapterBelongsToComic(Chapter chapter, Comic comic) {
-        if (!chapter.getComic().getId().equals(comic.getId())) {
-            throw new BadRequestException("Chapter does not belong to the requested comic");
-        }
     }
 }

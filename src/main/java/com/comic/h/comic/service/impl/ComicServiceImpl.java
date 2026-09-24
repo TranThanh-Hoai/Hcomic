@@ -6,6 +6,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.springframework.cache.CacheManager;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -56,6 +58,7 @@ public class ComicServiceImpl implements ComicService {
     private final ImageProcessor imageProcessor;
     private final ComicSecurityEvaluator comicSecurityEvaluator;
     private final ComicMapper comicMapper;
+    private final CacheManager cacheManager;
 
     @Override
     @Transactional
@@ -92,6 +95,7 @@ public class ComicServiceImpl implements ComicService {
                 .build();
 
         Comic savedComic = comicRepository.save(comic);
+        evictComicsPageCache();
         return comicMapper.toResponse(savedComic);
     }
 
@@ -109,6 +113,10 @@ public class ComicServiceImpl implements ComicService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "comics_page",
+            key = "'page:' + #pageable.pageNumber + ':size:' + #pageable.pageSize + ':sort:' + #pageable.sort",
+            condition = "#query == null && #genreSlug == null && #genreSlugs == null && #status == null && #uploader == null",
+            sync = true)
     public PageResponse<ComicResponse> getAllComics(
             String query,
             String genreSlug,
@@ -147,6 +155,7 @@ public class ComicServiceImpl implements ComicService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "comic_detail", key = "#slug", sync = true)
     public ComicResponse getComicBySlug(String slug) {
         Comic comic = comicRepository.findBySlug(slug)
                 .orElseThrow(() -> new ResourceNotFoundException("Comic not found with slug: " + slug));
@@ -220,6 +229,7 @@ public class ComicServiceImpl implements ComicService {
 
         try {
             Comic savedComic = comicRepository.save(comic);
+            evictComicCaches(oldSlug, savedComic.getSlug());
             return comicMapper.toResponse(savedComic);
         } catch (RuntimeException e) {
             if (!TransactionSynchronizationManager.isActualTransactionActive() && newCoverPath != null) {
@@ -244,6 +254,7 @@ public class ComicServiceImpl implements ComicService {
         Path comicDir = Paths.get(uploadDir, comic.getSlug());
         fileStorageService.scheduleDirectoryCleanupOnCommit(comicDir.toString());
 
+        evictComicCaches(comic.getSlug(), null);
         comicRepository.delete(comic);
     }
 
@@ -316,6 +327,41 @@ public class ComicServiceImpl implements ComicService {
     @Override
     public org.springframework.data.domain.Page<Comic> findAllComics(org.springframework.data.domain.Pageable pageable) {
         return comicRepository.findAll(pageable);
+    }
+
+    private void evictComicsPageCache() {
+        if (cacheManager != null) {
+            var cache = cacheManager.getCache("comics_page");
+            if (cache != null) {
+                cache.clear();
+            }
+        }
+    }
+
+    private void evictComicCaches(String oldSlug, String newSlug) {
+        if (cacheManager != null) {
+            var detailCache = cacheManager.getCache("comic_detail");
+            if (detailCache != null) {
+                if (oldSlug != null) {
+                    detailCache.evict(oldSlug);
+                }
+                if (newSlug != null) {
+                    detailCache.evict(newSlug);
+                }
+            }
+            var chaptersCache = cacheManager.getCache("chapters_list");
+            if (chaptersCache != null) {
+                if (oldSlug != null) {
+                    chaptersCache.evict(oldSlug + ":asc");
+                    chaptersCache.evict(oldSlug + ":desc");
+                }
+                if (newSlug != null) {
+                    chaptersCache.evict(newSlug + ":asc");
+                    chaptersCache.evict(newSlug + ":desc");
+                }
+            }
+            evictComicsPageCache();
+        }
     }
 }
 

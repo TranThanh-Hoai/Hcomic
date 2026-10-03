@@ -15,19 +15,20 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import com.comic.h.dto.request.LoginRequest;
-import com.comic.h.dto.request.RefreshTokenRequest;
-import com.comic.h.dto.request.RegisterRequest;
-import com.comic.h.dto.response.AuthResponse;
-import com.comic.h.dto.response.RegisterResponse;
-import com.comic.h.entity.RefreshToken;
-import com.comic.h.entity.User;
-import com.comic.h.enums.Role;
-import com.comic.h.exception.BadRequestException;
-import com.comic.h.exception.ResourceNotFoundException;
-import com.comic.h.repository.UserRepository;
-import com.comic.h.security.JwtTokenProvider;
-import com.comic.h.service.RefreshTokenService;
+import com.comic.h.common.exception.BadRequestException;
+import com.comic.h.common.exception.ResourceNotFoundException;
+import com.comic.h.common.security.JwtTokenProvider;
+import com.comic.h.identity.dto.request.LoginRequest;
+import com.comic.h.identity.dto.request.RefreshTokenRequest;
+import com.comic.h.identity.dto.request.RegisterRequest;
+import com.comic.h.identity.dto.response.AuthResponse;
+import com.comic.h.identity.dto.response.RegisterResponse;
+import com.comic.h.identity.entity.RefreshToken;
+import com.comic.h.identity.entity.User;
+import com.comic.h.identity.enums.Role;
+import com.comic.h.identity.repository.UserRepository;
+import com.comic.h.identity.service.RefreshTokenService;
+import com.comic.h.identity.service.impl.AuthServiceImpl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -66,7 +67,7 @@ class AuthServiceImplTest {
     // ==========================================
 
     @Test
-    @DisplayName("Register - Thành công khi username chưa tồn tại")
+    @DisplayName("Register - Success when username does not exist")
     void register_Success() {
         // Arrange
         RegisterRequest request = new RegisterRequest();
@@ -95,7 +96,7 @@ class AuthServiceImplTest {
     }
 
     @Test
-    @DisplayName("Register - Ném BadRequestException khi username đã tồn tại")
+    @DisplayName("Register - Throws BadRequestException when username already exists")
     void register_DuplicateUsername_ThrowsBadRequestException() {
         // Arrange
         RegisterRequest request = new RegisterRequest();
@@ -119,7 +120,7 @@ class AuthServiceImplTest {
     // ==========================================
 
     @Test
-    @DisplayName("Login - Thành công với thông tin xác thực chính xác")
+    @DisplayName("Login - Success with valid credentials")
     void login_Success() {
         // Arrange
         LoginRequest request = new LoginRequest();
@@ -164,7 +165,7 @@ class AuthServiceImplTest {
     }
 
     @Test
-    @DisplayName("Login - Ném ResourceNotFoundException khi xác thực xong nhưng user không tồn tại trong DB")
+    @DisplayName("Login - Throws ResourceNotFoundException when authenticated user not in DB")
     void login_UserNotFound_ThrowsResourceNotFoundException() {
         // Arrange
         LoginRequest request = new LoginRequest();
@@ -190,7 +191,7 @@ class AuthServiceImplTest {
     // ==========================================
 
     @Test
-    @DisplayName("Refresh Token - Rotation thành công cấp Access Token mới và Refresh Token mới")
+    @DisplayName("Refresh Token - Rotation success grants new access token and refresh token")
     void refreshToken_Success() {
         // Arrange
         String oldTokenString = "valid-old-refresh-token";
@@ -235,7 +236,7 @@ class AuthServiceImplTest {
     }
 
     @Test
-    @DisplayName("Refresh Token - Ném BadRequestException khi token không tồn tại trong database")
+    @DisplayName("Refresh Token - Throws BadRequestException when token not found in database")
     void refreshToken_NotFound_ThrowsBadRequestException() {
         // Arrange
         RefreshTokenRequest request = new RefreshTokenRequest("non-existent-token");

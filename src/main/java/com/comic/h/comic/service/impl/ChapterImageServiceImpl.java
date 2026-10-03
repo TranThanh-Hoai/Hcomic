@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.cache.CacheManager;
+import com.comic.h.common.cache.SafeCacheEvictor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,7 +41,7 @@ public class ChapterImageServiceImpl implements ChapterImageService {
     private final FileStorageService fileStorageService;
     private final ImageProcessor imageProcessor;
     private final ComicSecurityEvaluator comicSecurityEvaluator;
-    private final CacheManager cacheManager;
+    private final SafeCacheEvictor safeCacheEvictor;
 
     @Override
     @Transactional
@@ -248,11 +248,8 @@ public class ChapterImageServiceImpl implements ChapterImageService {
     }
 
     private void evictChapterDetailCache(Chapter chapter) {
-        if (cacheManager != null && chapter != null && chapter.getComic() != null) {
-            var cache = cacheManager.getCache("chapter_detail");
-            if (cache != null) {
-                cache.evict(chapter.getComic().getSlug() + ":" + chapter.getSlug());
-            }
+        if (chapter != null && chapter.getComic() != null) {
+            safeCacheEvictor.evictAfterCommit("chapter_detail", chapter.getComic().getSlug() + ":" + chapter.getSlug());
         }
     }
 }

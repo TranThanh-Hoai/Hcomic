@@ -6,11 +6,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.cache.CacheManager;
+import com.comic.h.common.cache.SafeCacheEvictor;
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,11 +42,8 @@ public class ChapterServiceImpl implements ChapterService {
     private final FileStorageService fileStorageService;
     private final ComicSecurityEvaluator comicSecurityEvaluator;
     private final ChapterMapper chapterMapper;
-    private final CacheManager cacheManager;
-
-    @Autowired
-    @Lazy
-    private ChapterService self;
+    private final SafeCacheEvictor safeCacheEvictor;
+    private final ObjectProvider<ChapterService> chapterServiceProvider;
 
     @Override
     @Transactional
@@ -158,6 +154,7 @@ public class ChapterServiceImpl implements ChapterService {
     @Override
     @Transactional
     public ChapterDetailResponse getChapterDetailBySlug(String comicSlug, String chapterSlug) {
+        ChapterService self = chapterServiceProvider.getIfAvailable();
         ChapterDetailResponse detail = (self != null ? self : this).getCachedChapterDetail(comicSlug, chapterSlug);
 
         chapterRepository.incrementViewCount(detail.getId());
@@ -229,29 +226,17 @@ public class ChapterServiceImpl implements ChapterService {
     }
 
     private void evictChapterDetailCache(String comicSlug, String chapterSlug) {
-        if (cacheManager != null && comicSlug != null && chapterSlug != null) {
-            var cache = cacheManager.getCache("chapter_detail");
-            if (cache != null) {
-                cache.evict(comicSlug + ":" + chapterSlug);
-            }
+        if (comicSlug != null && chapterSlug != null) {
+            safeCacheEvictor.evictAfterCommit("chapter_detail", comicSlug + ":" + chapterSlug);
         }
     }
 
     private void evictComicAndChapterCaches(String comicSlug) {
-        if (cacheManager != null && comicSlug != null) {
-            var chaptersCache = cacheManager.getCache("chapters_list");
-            if (chaptersCache != null) {
-                chaptersCache.evict(comicSlug + ":asc");
-                chaptersCache.evict(comicSlug + ":desc");
-            }
-            var comicCache = cacheManager.getCache("comic_detail");
-            if (comicCache != null) {
-                comicCache.evict(comicSlug);
-            }
-            var pageCache = cacheManager.getCache("comics_page");
-            if (pageCache != null) {
-                pageCache.clear();
-            }
+        if (comicSlug != null) {
+            safeCacheEvictor.evictAfterCommit("chapters_list", comicSlug + ":asc");
+            safeCacheEvictor.evictAfterCommit("chapters_list", comicSlug + ":desc");
+            safeCacheEvictor.evictAfterCommit("comic_detail", comicSlug);
+            safeCacheEvictor.clearAfterCommit("comics_page");
         }
     }
 

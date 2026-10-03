@@ -28,6 +28,7 @@ import com.comic.h.comic.repository.ComicRepository;
 import com.comic.h.comic.repository.GenreRepository;
 import com.comic.h.comic.security.ComicSecurityEvaluator;
 import com.comic.h.comic.service.impl.ComicServiceImpl;
+import com.comic.h.common.cache.SafeCacheEvictor;
 import com.comic.h.common.exception.ForbiddenException;
 import com.comic.h.common.exception.ResourceNotFoundException;
 import com.comic.h.common.storage.FileStorageService;
@@ -69,6 +70,9 @@ class ComicServiceImplTest {
 
     @Mock
     private ComicMapper comicMapper;
+
+    @Mock
+    private SafeCacheEvictor safeCacheEvictor;
 
     @InjectMocks
     private ComicServiceImpl comicService;

@@ -1,9 +1,9 @@
 package com.comic.h.interaction.service.impl;
 
-import org.springframework.cache.CacheManager;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.comic.h.common.cache.SafeCacheEvictor;
 import com.comic.h.comic.entity.Comic;
 import com.comic.h.comic.service.ComicService;
 import com.comic.h.identity.entity.User;
@@ -22,7 +22,7 @@ public class ComicLikeServiceImpl implements ComicLikeService {
     private final ComicLikeRepository comicLikeRepository;
     private final ComicService comicService;
     private final UserService userService;
-    private final CacheManager cacheManager;
+    private final SafeCacheEvictor safeCacheEvictor;
 
     @Override
     @Transactional
@@ -65,15 +65,8 @@ public class ComicLikeServiceImpl implements ComicLikeService {
     }
 
     private void evictComicCaches(String comicSlug) {
-        if (cacheManager != null && comicSlug != null) {
-            var detailCache = cacheManager.getCache("comic_detail");
-            if (detailCache != null) {
-                detailCache.evict(comicSlug);
-            }
-            var pageCache = cacheManager.getCache("comics_page");
-            if (pageCache != null) {
-                pageCache.clear();
-            }
+        if (comicSlug != null) {
+            safeCacheEvictor.evictAfterCommit("comic_detail", comicSlug);
         }
     }
 

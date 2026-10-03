@@ -24,6 +24,7 @@ services:
       JWT_SECRET: ${JWT_SECRET:-K9mP2xQ7nLs4Vz8RwH3tY6cFd1BaU5Je}
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-comic_redis_secret_2026}
 
       JAVA_TOOL_OPTIONS: "-XX:InitialRAMPercentage=25 -XX:MaxRAMPercentage=60"
     volumes:
@@ -49,13 +50,16 @@ services:
     image: redis:7-alpine
     restart: unless-stopped
     mem_limit: 256m
-    command: redis-server --appendonly yes --maxmemory 200mb --maxmemory-policy allkeys-lru
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-comic_redis_secret_2026}
+    command: >
+      sh -c "redis-server --requirepass \"$${REDIS_PASSWORD}\" --appendonly no --maxmemory 200mb --maxmemory-policy allkeys-lru"
     ports:
       - "127.0.0.1:6379:6379"
     volumes:
       - redis-data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD-SHELL", "redis-cli -a \"$${REDIS_PASSWORD}\" ping"]
       interval: 10s
       timeout: 5s
       retries: 5

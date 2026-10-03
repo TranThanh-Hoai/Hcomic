@@ -6,7 +6,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.springframework.cache.CacheManager;
+import com.comic.h.common.cache.SafeCacheEvictor;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -58,7 +58,7 @@ public class ComicServiceImpl implements ComicService {
     private final ImageProcessor imageProcessor;
     private final ComicSecurityEvaluator comicSecurityEvaluator;
     private final ComicMapper comicMapper;
-    private final CacheManager cacheManager;
+    private final SafeCacheEvictor safeCacheEvictor;
 
     @Override
     @Transactional
@@ -137,7 +137,7 @@ public class ComicServiceImpl implements ComicService {
             return List.of();
         }
         int validLimit = limit > 0 ? Math.min(limit, 20) : 5;
-        Pageable pageable = PageRequest.of(0, validLimit, Sort.by(Sort.Direction.DESC, "viewCount", "createdAt"));
+        Pageable pageable = PageRequest.of(0, validLimit, Sort.by(Sort.Direction.DESC, Comic::getViewCount, Comic::getCreatedAt));
         var spec = ComicSpecification.filter(query.trim(), null, null, null, null);
         Page<Comic> page = comicRepository.findAll(spec, pageable);
         return page.getContent().stream()
@@ -330,38 +330,21 @@ public class ComicServiceImpl implements ComicService {
     }
 
     private void evictComicsPageCache() {
-        if (cacheManager != null) {
-            var cache = cacheManager.getCache("comics_page");
-            if (cache != null) {
-                cache.clear();
-            }
-        }
+        safeCacheEvictor.clearAfterCommit("comics_page");
     }
 
     private void evictComicCaches(String oldSlug, String newSlug) {
-        if (cacheManager != null) {
-            var detailCache = cacheManager.getCache("comic_detail");
-            if (detailCache != null) {
-                if (oldSlug != null) {
-                    detailCache.evict(oldSlug);
-                }
-                if (newSlug != null) {
-                    detailCache.evict(newSlug);
-                }
-            }
-            var chaptersCache = cacheManager.getCache("chapters_list");
-            if (chaptersCache != null) {
-                if (oldSlug != null) {
-                    chaptersCache.evict(oldSlug + ":asc");
-                    chaptersCache.evict(oldSlug + ":desc");
-                }
-                if (newSlug != null) {
-                    chaptersCache.evict(newSlug + ":asc");
-                    chaptersCache.evict(newSlug + ":desc");
-                }
-            }
-            evictComicsPageCache();
+        if (oldSlug != null) {
+            safeCacheEvictor.evictAfterCommit("comic_detail", oldSlug);
+            safeCacheEvictor.evictAfterCommit("chapters_list", oldSlug + ":asc");
+            safeCacheEvictor.evictAfterCommit("chapters_list", oldSlug + ":desc");
         }
+        if (newSlug != null) {
+            safeCacheEvictor.evictAfterCommit("comic_detail", newSlug);
+            safeCacheEvictor.evictAfterCommit("chapters_list", newSlug + ":asc");
+            safeCacheEvictor.evictAfterCommit("chapters_list", newSlug + ":desc");
+        }
+        evictComicsPageCache();
     }
 }
 

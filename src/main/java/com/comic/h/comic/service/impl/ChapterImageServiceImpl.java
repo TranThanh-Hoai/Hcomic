@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Value;
+import com.comic.h.common.cache.SafeCacheEvictor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,6 +41,7 @@ public class ChapterImageServiceImpl implements ChapterImageService {
     private final FileStorageService fileStorageService;
     private final ImageProcessor imageProcessor;
     private final ComicSecurityEvaluator comicSecurityEvaluator;
+    private final SafeCacheEvictor safeCacheEvictor;
 
     @Override
     @Transactional
@@ -49,7 +51,9 @@ public class ChapterImageServiceImpl implements ChapterImageService {
 
         comicSecurityEvaluator.verifyOwnership(chapter.getComic());
 
-        return processSaveOrReplace(chapter, image, pageNumber);
+        ChapterImageResponse response = processSaveOrReplace(chapter, image, pageNumber);
+        evictChapterDetailCache(chapter);
+        return response;
     }
 
     @Override
@@ -101,6 +105,7 @@ public class ChapterImageServiceImpl implements ChapterImageService {
 
             chapter.setUploadStatus("COMPLETED");
             chapterRepository.save(chapter);
+            evictChapterDetailCache(chapter);
             return responses;
         } catch (Exception ex) {
             chapter.setUploadStatus("FAILED");
@@ -153,6 +158,7 @@ public class ChapterImageServiceImpl implements ChapterImageService {
         chapterImageRepository.deleteByChapterIdAndPageNumber(chapterId, pageNumber);
 
         fileStorageService.scheduleFileCleanupOnCommit(List.of(oldFilePath), null);
+        evictChapterDetailCache(chapter);
     }
 
     @Override
@@ -172,6 +178,7 @@ public class ChapterImageServiceImpl implements ChapterImageService {
         log.info("Deleted {} chapter image records for chapterId={}", deletedCount, chapterId);
 
         fileStorageService.scheduleFileCleanupOnCommit(filePaths, null);
+        evictChapterDetailCache(chapter);
         return deletedCount;
     }
 
@@ -238,5 +245,11 @@ public class ChapterImageServiceImpl implements ChapterImageService {
             return String.valueOf(chapterNumber.longValue());
         }
         return String.valueOf(chapterNumber);
+    }
+
+    private void evictChapterDetailCache(Chapter chapter) {
+        if (chapter != null && chapter.getComic() != null) {
+            safeCacheEvictor.evictAfterCommit("chapter_detail", chapter.getComic().getSlug() + ":" + chapter.getSlug());
+        }
     }
 }

@@ -8,6 +8,7 @@ import java.util.List;
 
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -87,7 +88,7 @@ public class AdminAnalyticsServiceImpl implements AdminAnalyticsService {
 
         // If not enough history data, fallback to top comics by total viewCount
         if (responses.size() < limit) {
-            Pageable fallbackPageable = PageRequest.of(0, limit, org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "viewCount", "createdAt"));
+            Pageable fallbackPageable = PageRequest.of(0, limit, Sort.by(Sort.Direction.DESC, Comic::getViewCount, Comic::getCreatedAt));
             List<Comic> topComics = comicService.findAllComics(fallbackPageable).getContent();
             for (Comic c : topComics) {
                 boolean exists = responses.stream().anyMatch(r -> r.getComicId().equals(c.getId()));

@@ -15,11 +15,17 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+
+import com.comic.h.comic.dto.request.ChapterRequest;
+import com.comic.h.comic.dto.response.ChapterDetailResponse;
+import com.comic.h.comic.dto.response.ChapterResponse;
+import com.comic.h.comic.service.ChapterService;
 
 import com.comic.h.comic.dto.request.ComicRequest;
 import com.comic.h.comic.dto.response.ComicResponse;
@@ -31,11 +37,12 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping({"/api/comics"})
+@RequestMapping("/api/comics")
 @RequiredArgsConstructor
 public class ComicController {
 
     private final ComicService comicService;
+    private final ChapterService chapterService;
 
     @PreAuthorize("hasAnyRole('TRANSLATOR', 'ADMIN')")
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -106,5 +113,35 @@ public class ComicController {
     public ResponseEntity<String> deleteComic(@PathVariable Long id) {
         comicService.deleteComic(id);
         return ResponseEntity.ok("Comic deleted successfully with id: " + id);
+    }
+
+    @PreAuthorize("hasAnyRole('TRANSLATOR', 'ADMIN')")
+    @PostMapping(value = "/{comicId}/chapters", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<ChapterResponse> createChapter(
+            @PathVariable Long comicId,
+            @Valid @RequestBody ChapterRequest request) {
+        ChapterResponse response = chapterService.createChapter(comicId, request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @GetMapping("/slug/{comicSlug}/chapters")
+    public ResponseEntity<List<ChapterResponse>> getChaptersByComicSlug(
+            @PathVariable String comicSlug,
+            @RequestParam(name = "sort", defaultValue = "desc") String sort) {
+        return ResponseEntity.ok(chapterService.getChaptersByComicSlug(comicSlug, sort));
+    }
+
+    @GetMapping("/slug/{comicSlug}/chapters/{chapterSlug}")
+    public ResponseEntity<ChapterDetailResponse> getChapterDetailBySlug(
+            @PathVariable String comicSlug,
+            @PathVariable String chapterSlug) {
+        return ResponseEntity.ok(chapterService.getChapterDetailBySlug(comicSlug, chapterSlug));
+    }
+
+    @GetMapping("/{comicId}/chapters")
+    public ResponseEntity<List<ChapterResponse>> getChaptersByComicId(
+            @PathVariable Long comicId,
+            @RequestParam(name = "sort", defaultValue = "desc") String sort) {
+        return ResponseEntity.ok(chapterService.getChaptersByComicId(comicId, sort));
     }
 }

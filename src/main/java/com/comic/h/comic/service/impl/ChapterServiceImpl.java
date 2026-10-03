@@ -6,7 +6,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
+import com.comic.h.common.cache.SafeCacheEvictor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,6 +42,8 @@ public class ChapterServiceImpl implements ChapterService {
     private final FileStorageService fileStorageService;
     private final ComicSecurityEvaluator comicSecurityEvaluator;
     private final ChapterMapper chapterMapper;
+    private final SafeCacheEvictor safeCacheEvictor;
+    private final ObjectProvider<ChapterService> chapterServiceProvider;
 
     @Override
     @Transactional
@@ -75,6 +80,7 @@ public class ChapterServiceImpl implements ChapterService {
                 .build();
 
         Chapter savedChapter = chapterRepository.save(chapter);
+        evictComicAndChapterCaches(comic.getSlug());
         return chapterMapper.toResponse(savedChapter);
     }
 
@@ -88,6 +94,7 @@ public class ChapterServiceImpl implements ChapterService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "chapters_list", key = "#comicSlug + ':' + (#sort != null ? #sort.toLowerCase() : 'desc')", sync = true)
     public List<ChapterResponse> getChaptersByComicSlug(String comicSlug, String sort) {
         if (!comicRepository.existsBySlug(comicSlug)) {
             throw new ResourceNotFoundException("Comic not found with slug: " + comicSlug);
@@ -125,26 +132,40 @@ public class ChapterServiceImpl implements ChapterService {
     }
 
     @Override
-    @Transactional
-    public ChapterDetailResponse getChapterDetailBySlug(String comicSlug, String chapterSlug) {
+    @Transactional(readOnly = true)
+    @Cacheable(value = "chapter_detail", key = "#comicSlug + ':' + #chapterSlug", sync = true)
+    public ChapterDetailResponse getCachedChapterDetail(String comicSlug, String chapterSlug) {
         Chapter chapter = chapterRepository.findByComicSlugAndSlug(comicSlug, chapterSlug)
                 .orElseThrow(() -> new ResourceNotFoundException("Chapter not found with slug: " + chapterSlug + " for comic: " + comicSlug));
 
-        chapterRepository.incrementViewCount(chapter.getId());
-
         Comic comic = chapter.getComic();
-        comicRepository.incrementViewCount(comic.getId());
-
         Optional<Chapter> prevChapterOpt = chapterRepository
                 .findFirstByComicIdAndChapterNumberLessThanOrderByChapterNumberDesc(comic.getId(), chapter.getChapterNumber());
         Optional<Chapter> nextChapterOpt = chapterRepository
                 .findFirstByComicIdAndChapterNumberGreaterThanOrderByChapterNumberAsc(comic.getId(), chapter.getChapterNumber());
 
-        long updatedViewCount = (chapter.getViewCount() != null ? chapter.getViewCount() : 0L) + 1;
+        long currentViewCount = chapter.getViewCount() != null ? chapter.getViewCount() : 0L;
         String prevSlug = prevChapterOpt.map(Chapter::getSlug).orElse(null);
         String nextSlug = nextChapterOpt.map(Chapter::getSlug).orElse(null);
 
-        return chapterMapper.toDetailResponse(chapter, prevSlug, nextSlug, updatedViewCount);
+        return chapterMapper.toDetailResponse(chapter, prevSlug, nextSlug, currentViewCount);
+    }
+
+    @Override
+    @Transactional
+    public ChapterDetailResponse getChapterDetailBySlug(String comicSlug, String chapterSlug) {
+        ChapterService self = chapterServiceProvider.getIfAvailable();
+        ChapterDetailResponse detail = (self != null ? self : this).getCachedChapterDetail(comicSlug, chapterSlug);
+
+        chapterRepository.incrementViewCount(detail.getId());
+        if (detail.getComicId() != null) {
+            comicRepository.incrementViewCount(detail.getComicId());
+        }
+
+        Long latestViewCount = chapterRepository.findViewCountById(detail.getId());
+        detail.setViewCount(latestViewCount != null ? latestViewCount : ((detail.getViewCount() != null ? detail.getViewCount() : 0L) + 1));
+
+        return detail;
     }
 
     @Override
@@ -154,6 +175,9 @@ public class ChapterServiceImpl implements ChapterService {
                 .orElseThrow(() -> new ResourceNotFoundException("Chapter not found with id: " + chapterId));
 
         comicSecurityEvaluator.verifyOwnership(chapter.getComic());
+
+        String oldSlug = chapter.getSlug();
+        String comicSlug = chapter.getComic().getSlug();
 
         if (request.getChapterNumber() != null && !request.getChapterNumber().equals(chapter.getChapterNumber())) {
             if (chapterRepository.existsByComicIdAndChapterNumberAndIdNot(chapter.getComic().getId(), request.getChapterNumber(), chapterId)) {
@@ -168,6 +192,11 @@ public class ChapterServiceImpl implements ChapterService {
         }
 
         Chapter updatedChapter = chapterRepository.save(chapter);
+        evictChapterDetailCache(comicSlug, oldSlug);
+        if (!oldSlug.equals(updatedChapter.getSlug())) {
+            evictChapterDetailCache(comicSlug, updatedChapter.getSlug());
+        }
+        evictComicAndChapterCaches(comicSlug);
         return chapterMapper.toResponse(updatedChapter);
     }
 
@@ -191,7 +220,24 @@ public class ChapterServiceImpl implements ChapterService {
         fileStorageService.scheduleFileCleanupOnCommit(filePaths, null);
         fileStorageService.scheduleDirectoryCleanupOnCommit(chapterDir.toString().replace('\\', '/'));
 
+        evictChapterDetailCache(comic.getSlug(), chapter.getSlug());
+        evictComicAndChapterCaches(comic.getSlug());
         chapterRepository.delete(chapter);
+    }
+
+    private void evictChapterDetailCache(String comicSlug, String chapterSlug) {
+        if (comicSlug != null && chapterSlug != null) {
+            safeCacheEvictor.evictAfterCommit("chapter_detail", comicSlug + ":" + chapterSlug);
+        }
+    }
+
+    private void evictComicAndChapterCaches(String comicSlug) {
+        if (comicSlug != null) {
+            safeCacheEvictor.evictAfterCommit("chapters_list", comicSlug + ":asc");
+            safeCacheEvictor.evictAfterCommit("chapters_list", comicSlug + ":desc");
+            safeCacheEvictor.evictAfterCommit("comic_detail", comicSlug);
+            safeCacheEvictor.clearAfterCommit("comics_page");
+        }
     }
 
     private String formatChapterNumber(Double chapterNumber) {

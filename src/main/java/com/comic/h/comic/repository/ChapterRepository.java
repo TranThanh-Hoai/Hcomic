@@ -37,4 +37,7 @@ public interface ChapterRepository extends JpaRepository<Chapter, Long> {
     @Modifying
     @Query("UPDATE Chapter c SET c.viewCount = COALESCE(c.viewCount, 0) + 1 WHERE c.id = :id")
     void incrementViewCount(@Param("id") Long id);
+
+    @Query("SELECT COALESCE(c.viewCount, 0) FROM Chapter c WHERE c.id = :id")
+    Long findViewCountById(@Param("id") Long id);
 }

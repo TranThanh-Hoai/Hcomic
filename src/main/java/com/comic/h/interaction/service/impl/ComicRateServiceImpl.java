@@ -1,5 +1,6 @@
 package com.comic.h.interaction.service.impl;
 
+import com.comic.h.common.cache.SafeCacheEvictor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +26,7 @@ public class ComicRateServiceImpl implements ComicRateService {
     private final ComicService comicService;
     private final UserService userService;
     private final ComicRateMapper comicRateMapper;
+    private final SafeCacheEvictor safeCacheEvictor;
 
     @Override
     @Transactional(readOnly = true)
@@ -50,6 +52,7 @@ public class ComicRateServiceImpl implements ComicRateService {
 
         double avgRating = getAverageRating(comic.getId());
         comic.setAvgRating(avgRating);
+        evictComicCaches(comic.getSlug());
 
         return comicRateMapper.toResponse(savedRating);
     }
@@ -63,4 +66,9 @@ public class ComicRateServiceImpl implements ComicRateService {
         return comicRateMapper.toResponse(rating);
     }
 
+    private void evictComicCaches(String comicSlug) {
+        if (comicSlug != null) {
+            safeCacheEvictor.evictAfterCommit("comic_detail", comicSlug);
+        }
+    }
 }

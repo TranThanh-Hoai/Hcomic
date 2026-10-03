@@ -20,6 +20,8 @@ public interface ChapterService {
 
     ChapterDetailResponse getChapterDetailBySlug(String comicSlug, String chapterSlug);
 
+    ChapterDetailResponse getCachedChapterDetail(String comicSlug, String chapterSlug);
+
     ChapterResponse updateChapter(Long chapterId, ChapterRequest request);
 
     void deleteChapter(Long chapterId);

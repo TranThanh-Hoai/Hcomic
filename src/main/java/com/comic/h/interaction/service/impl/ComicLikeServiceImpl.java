@@ -3,6 +3,7 @@ package com.comic.h.interaction.service.impl;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.comic.h.common.cache.SafeCacheEvictor;
 import com.comic.h.comic.entity.Comic;
 import com.comic.h.comic.service.ComicService;
 import com.comic.h.identity.entity.User;
@@ -21,6 +22,7 @@ public class ComicLikeServiceImpl implements ComicLikeService {
     private final ComicLikeRepository comicLikeRepository;
     private final ComicService comicService;
     private final UserService userService;
+    private final SafeCacheEvictor safeCacheEvictor;
 
     @Override
     @Transactional
@@ -43,6 +45,7 @@ public class ComicLikeServiceImpl implements ComicLikeService {
         }
 
         long likeCount = updateComicLikeCount(comic);
+        evictComicCaches(comic.getSlug());
 
         return buildResponse(liked, likeCount);
     }
@@ -59,6 +62,12 @@ public class ComicLikeServiceImpl implements ComicLikeService {
         long count = comicLikeRepository.countByComicId(comic.getId());
         comic.setLikeCount(count);
         return count;
+    }
+
+    private void evictComicCaches(String comicSlug) {
+        if (comicSlug != null) {
+            safeCacheEvictor.evictAfterCommit("comic_detail", comicSlug);
+        }
     }
 
     private User findUserByUsername(String username) {

@@ -11,7 +11,7 @@
   <img src="https://img.shields.io/badge/CI%2FCD-GitHub_Actions-2088FF?style=for-the-badge&logo=githubactions&logoColor=white" alt="GitHub Actions" />
 </p>
 
-> A Backend RESTful API for an online comic reader platform built with **Spring Boot 4** and **Java 21**. Features **JWT & RBAC security**, automatic **WebP image conversion**, database query optimization (solving **N+1 queries**), schema migrations with **Flyway**, and **Docker & CI/CD** integration.
+> A Backend RESTful API for an online comic reader platform built with **Spring Boot 4** and **Java 21**. Features **JWT & RBAC security**, automatic **WebP image conversion for VPS storage optimization**, schema migrations with **Flyway**, and **Docker & CI/CD** integration.
 
 ---
 
@@ -38,28 +38,13 @@
 
 ---
 
-## 📊 Performance Benchmark
+## 💡 Architecture & Key Highlights
 
-Tested with **10 concurrent workers / 50 requests per test** in a local environment:
-
-| Business Domain | Scenario / API Endpoint | Baseline Latency | Optimized Latency | Latency Reduction | Baseline RPS | Optimized RPS | Throughput Change |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **1. Catalog & Discovery** | Catalog Filter & Pagination | 85.61 ms | 60.67 ms | **-29.1%** | 109.0 req/s | 155.2 req/s | **1.42x** |
-| **1. Catalog & Discovery** | Quick Keyword Search | 45.75 ms | 35.44 ms | **-22.5%** | 197.8 req/s | 252.6 req/s | **1.28x** |
-| **3. Community & Comments** | Comic Comments Feed | 39.77 ms | 28.65 ms | **-28.0%** | 223.7 req/s | 282.7 req/s | **1.26x** |
-| **3. Community & Ratings** | Comic Rating Average | 21.26 ms | 18.87 ms | **-11.2%** | 399.6 req/s | 447.0 req/s | **1.12x** |
-| **4. Library & Tracking** | User Comic Library | 173.05 ms | 43.16 ms | **-75.1%** | 56.4 req/s | 209.0 req/s | **3.70x** |
-| **4. Library & Tracking** | User Reading History | 117.31 ms | 34.79 ms | **-70.3%** | 81.8 req/s | 259.8 req/s | **3.17x** |
-| **5. Admin & Analytics** | Admin User Growth (30 Days) | 96.30 ms | 23.70 ms | **-75.4%** | 98.5 req/s | 337.7 req/s | **3.43x** |
-| **5. Admin & Analytics** | Admin User Search & Pagination | 31.67 ms | 28.84 ms | **-8.9%** | 293.2 req/s | 325.1 req/s | **1.11x** |
-
-### 📈 Comparison Chart
-
-![HComic Benchmark Comparison](docs/images/benchmark_comparison.png)
-
-*The top chart compares **Response Latency** in ms (shorter/green is better), and the bottom chart compares **Throughput (RPS)** (longer/green is better). The biggest improvements are in **User Comic Library** (3.70x faster), **Reading History** (3.17x faster), and **User Growth Analytics** (3.43x faster) by fixing N+1 queries and optimizing SQL aggregates.*
-
-> 💡 *Note: The benchmark was conducted in a local development environment using Python scripts generated with the assistance of the **Antigravity AI Agent**.*
+- 🏗️ **Clean Layered Architecture**: Strictly follows `Controller` ➔ `Service` ➔ `Repository` ➔ `Entity` with dedicated DTOs and MapStruct mappers for clean data transfer and loose coupling.
+- 🖼️ **VPS Storage Optimization (WebP)**: Automatically converts uploaded chapter pages and cover images from PNG/JPG to WebP format (80% quality) upon upload, reducing disk storage on VPS and bandwidth usage by ~50% without visible quality loss.
+- 🗄️ **Database Migration**: Uses **Flyway** for database schema version control, ensuring consistency and reproducible deployments across development and production environments.
+- 🔒 **Stateless Authentication**: Secures REST endpoints using Spring Security and JWT with clear Role-Based Access Control (`ROLE_ADMIN`, `ROLE_TRANSLATOR`, `ROLE_USER`).
+- 🐳 **Containerized Deployment**: Easily deployable with a single command via **Docker Compose**, bundling the Spring Boot backend, PostgreSQL 17, and Redis.
 
 ---
 

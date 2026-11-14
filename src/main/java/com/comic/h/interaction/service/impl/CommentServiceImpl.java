@@ -2,6 +2,7 @@ package com.comic.h.interaction.service.impl;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,6 +15,8 @@ import com.comic.h.common.exception.ForbiddenException;
 import com.comic.h.common.exception.ResourceNotFoundException;
 import com.comic.h.identity.entity.User;
 import com.comic.h.identity.service.UserService;
+import com.comic.h.interaction.dto.event.CommentEvent;
+import com.comic.h.interaction.dto.event.CommentEventType;
 import com.comic.h.interaction.dto.request.CommentRequest;
 import com.comic.h.interaction.dto.response.CommentResponse;
 import com.comic.h.interaction.entity.Comment;
@@ -32,6 +35,7 @@ public class CommentServiceImpl implements CommentService {
     private final ChapterService chapterService;
     private final UserService userService;
     private final CommentMapper commentMapper;
+    private final SimpMessagingTemplate messagingTemplate;
 
     @Override
     @Transactional
@@ -51,7 +55,9 @@ public class CommentServiceImpl implements CommentService {
                 .build();
 
         Comment savedComment = commentRepository.save(comment);
-        return commentMapper.toResponse(savedComment);
+        CommentResponse response = commentMapper.toResponse(savedComment);
+        broadcastCommentEvent(CommentEventType.CREATED, comicId, null, savedComment.getId(), response);
+        return response;
     }
 
     @Override
@@ -69,7 +75,9 @@ public class CommentServiceImpl implements CommentService {
                 .build();
 
         Comment savedComment = commentRepository.save(comment);
-        return commentMapper.toResponse(savedComment);
+        CommentResponse response = commentMapper.toResponse(savedComment);
+        broadcastCommentEvent(CommentEventType.CREATED, comic.getId(), chapterId, savedComment.getId(), response);
+        return response;
     }
 
     @Override
@@ -79,7 +87,11 @@ public class CommentServiceImpl implements CommentService {
         verifyOwnership(comment, username, "edit");
 
         comment.setContent(request.getContent().trim());
-        return commentMapper.toResponse(comment);
+        CommentResponse response = commentMapper.toResponse(comment);
+        Long comicId = comment.getComic() != null ? comment.getComic().getId() : null;
+        Long chapterId = comment.getChapter() != null ? comment.getChapter().getId() : null;
+        broadcastCommentEvent(CommentEventType.UPDATED, comicId, chapterId, commentId, response);
+        return response;
     }
 
     @Override
@@ -88,7 +100,10 @@ public class CommentServiceImpl implements CommentService {
         Comment comment = findCommentById(commentId);
         verifyOwnership(comment, username, "delete");
 
+        Long comicId = comment.getComic() != null ? comment.getComic().getId() : null;
+        Long chapterId = comment.getChapter() != null ? comment.getChapter().getId() : null;
         commentRepository.delete(comment);
+        broadcastCommentEvent(CommentEventType.DELETED, comicId, chapterId, commentId, null);
     }
 
     @Override
@@ -120,7 +135,10 @@ public class CommentServiceImpl implements CommentService {
     @Transactional
     public void deleteCommentById(Long commentId) {
         Comment comment = findCommentById(commentId);
+        Long comicId = comment.getComic() != null ? comment.getComic().getId() : null;
+        Long chapterId = comment.getChapter() != null ? comment.getChapter().getId() : null;
         commentRepository.delete(comment);
+        broadcastCommentEvent(CommentEventType.DELETED, comicId, chapterId, commentId, null);
     }
 
     private Comment findCommentById(Long commentId) {
@@ -131,6 +149,22 @@ public class CommentServiceImpl implements CommentService {
     private void verifyOwnership(Comment comment, String username, String action) {
         if (!comment.getUser().getUsername().equals(username)) {
             throw new ForbiddenException("You can only " + action + " your own comment");
+        }
+    }
+
+    private void broadcastCommentEvent(CommentEventType eventType, Long comicId, Long chapterId, Long commentId, CommentResponse response) {
+        CommentEvent event = CommentEvent.builder()
+                .eventType(eventType)
+                .comicId(comicId)
+                .chapterId(chapterId)
+                .commentId(commentId)
+                .data(response)
+                .build();
+
+        if (chapterId != null) {
+            messagingTemplate.convertAndSend("/topic/chapters/" + chapterId + "/comments", event);
+        } else if (comicId != null) {
+            messagingTemplate.convertAndSend("/topic/comics/" + comicId + "/comments", event);
         }
     }
 }

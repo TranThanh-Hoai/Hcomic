@@ -9,6 +9,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+
 import com.comic.h.comic.entity.Chapter;
 import com.comic.h.comic.entity.Comic;
 import com.comic.h.comic.service.ChapterService;
@@ -17,6 +19,7 @@ import com.comic.h.common.exception.ForbiddenException;
 import com.comic.h.common.exception.ResourceNotFoundException;
 import com.comic.h.identity.entity.User;
 import com.comic.h.identity.service.UserService;
+import com.comic.h.interaction.dto.event.CommentEvent;
 import com.comic.h.interaction.dto.request.CommentRequest;
 import com.comic.h.interaction.dto.response.CommentResponse;
 import com.comic.h.interaction.entity.Comment;
@@ -47,6 +50,9 @@ class CommentServiceImplTest {
 
     @Mock
     private CommentMapper commentMapper;
+
+    @Mock
+    private SimpMessagingTemplate messagingTemplate;
 
     @InjectMocks
     private CommentServiceImpl commentService;
@@ -103,6 +109,7 @@ class CommentServiceImplTest {
                         && c.getComic().equals(comic)
                         && c.getChapter() == null
         ));
+        verify(messagingTemplate).convertAndSend(eq("/topic/comics/10/comments"), any(CommentEvent.class));
     }
 
     @Test
@@ -153,6 +160,7 @@ class CommentServiceImplTest {
         verify(commentRepository).save(argThat(c ->
                 c.getChapter() != null && c.getChapter().getId().equals(chapterId)
         ));
+        verify(messagingTemplate).convertAndSend(eq("/topic/chapters/55/comments"), any(CommentEvent.class));
     }
 
     @Test
@@ -207,10 +215,12 @@ class CommentServiceImplTest {
         String authorUsername = "john_doe";
 
         User author = User.builder().userId(5L).username(authorUsername).build();
+        Comic comic = Comic.builder().id(10L).build();
         Comment comment = Comment.builder()
                 .id(commentId)
                 .content("Original comment")
                 .user(author)
+                .comic(comic)
                 .build();
 
         CommentRequest updateRequest = CommentRequest.builder()
@@ -233,6 +243,7 @@ class CommentServiceImplTest {
         assertThat(comment.getContent()).isEqualTo("Updated comment content");
         verify(commentRepository).findById(commentId);
         verify(commentMapper).toResponse(comment);
+        verify(messagingTemplate).convertAndSend(eq("/topic/comics/10/comments"), any(CommentEvent.class));
     }
 
     @Test
@@ -276,10 +287,12 @@ class CommentServiceImplTest {
         String authorUsername = "john_doe";
 
         User author = User.builder().userId(5L).username(authorUsername).build();
+        Comic comic = Comic.builder().id(10L).build();
         Comment comment = Comment.builder()
                 .id(commentId)
                 .content("To be deleted")
                 .user(author)
+                .comic(comic)
                 .build();
 
         when(commentRepository.findById(commentId)).thenReturn(Optional.of(comment));
@@ -290,6 +303,7 @@ class CommentServiceImplTest {
         // Assert
         verify(commentRepository).findById(commentId);
         verify(commentRepository).delete(comment);
+        verify(messagingTemplate).convertAndSend(eq("/topic/comics/10/comments"), any(CommentEvent.class));
     }
 
     @Test

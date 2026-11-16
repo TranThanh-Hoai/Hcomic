@@ -10,13 +10,20 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import com.comic.h.identity.entity.User;
+import com.comic.h.identity.enums.AuthProvider;
 import com.comic.h.identity.enums.Role;
 
 public interface UserRepository extends JpaRepository<User, Long> {
 
     Optional<User> findByUsername(String username);
 
+    Optional<User> findByEmail(String email);
+
+    Optional<User> findByProviderAndProviderId(AuthProvider provider, String providerId);
+
     boolean existsByUsername(String username);
+
+    boolean existsByEmail(String email);
 
     long countByCreatedAtAfter(LocalDateTime dateTime);
 

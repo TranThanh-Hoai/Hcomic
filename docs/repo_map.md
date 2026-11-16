@@ -34,3 +34,7 @@
 ### Luồng 3: Tải ảnh chương truyện hàng loạt (Batch Upload Images with WebP Conversion)
 `JwtAuthenticationFilter.java` -> `ChapterImageController.java` -> `ChapterImageServiceImpl.java` -> `ComicSecurityEvaluator.java` & `ImageProcessor.java` & `LocalStorageServiceImpl.java` -> `ChapterImageRepository.java` & `SafeCacheEvictor.java`
 - Kiểm tra quyền uploader của truyện, chuyển đổi file ảnh sang WebP chất lượng 80%, ghi tệp vào `upload/chapter/`, lưu metadata vào DB và xóa cache chương an toàn sau khi commit.
+
+### Luồng 4: Đăng nhập mạng xã hội (OAuth2 Social Login - Google)
+`SecurityConfig.java` -> `HttpCookieOAuth2AuthorizationRequestRepository.java` -> Google OIDC -> `CustomOAuth2UserService.java` -> `OAuth2AuthenticationSuccessHandler.java` -> `JwtTokenProvider.java` & `RefreshTokenServiceImpl.java`
+- Chuyển hướng xác thực qua Google bằng cơ chế Stateless Cookie, tự động tạo/liên kết tài khoản trong DB, cấp cặp Access Token JWT & Refresh Token rồi redirect an toàn về Frontend.

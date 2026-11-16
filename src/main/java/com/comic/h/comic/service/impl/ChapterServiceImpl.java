@@ -94,7 +94,7 @@ public class ChapterServiceImpl implements ChapterService {
 
     @Override
     @Transactional(readOnly = true)
-    @Cacheable(value = "chapters_list", key = "#comicSlug + ':' + (#sort != null ? #sort.toLowerCase() : 'desc')", sync = true)
+    @Cacheable(value = "chapters_list", key = "#comicSlug + ':' + (#sort != null ? #sort.toLowerCase() : 'desc')")
     public List<ChapterResponse> getChaptersByComicSlug(String comicSlug, String sort) {
         if (!comicRepository.existsBySlug(comicSlug)) {
             throw new ResourceNotFoundException("Comic not found with slug: " + comicSlug);
@@ -133,7 +133,7 @@ public class ChapterServiceImpl implements ChapterService {
 
     @Override
     @Transactional(readOnly = true)
-    @Cacheable(value = "chapter_detail", key = "#comicSlug + ':' + #chapterSlug", sync = true)
+    @Cacheable(value = "chapter_detail", key = "#comicSlug + ':' + #chapterSlug")
     public ChapterDetailResponse getCachedChapterDetail(String comicSlug, String chapterSlug) {
         Chapter chapter = chapterRepository.findByComicSlugAndSlug(comicSlug, chapterSlug)
                 .orElseThrow(() -> new ResourceNotFoundException("Chapter not found with slug: " + chapterSlug + " for comic: " + comicSlug));

@@ -38,7 +38,7 @@ public class RedisConfig implements CachingConfigurer {
                                 .allowIfSubType("java.util.")
                                 .allowIfSubType("java.lang.")
                                 .allowIfSubType("java.time.")
-                                .allowIfSubType("org.springframework.data.domain.")
+                                .allowIfSubType("org.springframework.")
                                 .allowIfSubTypeIsArray()
                                 .build();
 

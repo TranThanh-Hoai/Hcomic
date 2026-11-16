@@ -10,6 +10,5 @@ import com.comic.h.comic.entity.Comic;
 public interface ComicMapper {
 
     @Mapping(source = "uploader.username", target = "uploader")
-    @Mapping(source = "avgRating", target = "rating")
     ComicResponse toResponse(Comic comic);
 }

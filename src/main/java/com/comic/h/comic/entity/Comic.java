@@ -69,7 +69,15 @@ public class Comic {
 
     @Builder.Default
     @Column(name = "rating")
-    private Double avgRating = 0.0;
+    private Double rating = 0.0;
+
+    public Double getAvgRating() {
+        return this.rating;
+    }
+
+    public void setAvgRating(Double avgRating) {
+        this.rating = avgRating;
+    }
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status")

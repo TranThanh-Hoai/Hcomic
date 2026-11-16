@@ -115,8 +115,7 @@ public class ComicServiceImpl implements ComicService {
     @Transactional(readOnly = true)
     @Cacheable(value = "comics_page",
             key = "'page:' + #pageable.pageNumber + ':size:' + #pageable.pageSize + ':sort:' + #pageable.sort",
-            condition = "#query == null && #genreSlug == null && #genreSlugs == null && #status == null && #uploader == null",
-            sync = true)
+            condition = "#query == null && #genreSlug == null && #genreSlugs == null && #status == null && #uploader == null")
     public PageResponse<ComicResponse> getAllComics(
             String query,
             String genreSlug,
@@ -155,7 +154,7 @@ public class ComicServiceImpl implements ComicService {
 
     @Override
     @Transactional(readOnly = true)
-    @Cacheable(value = "comic_detail", key = "#slug", sync = true)
+    @Cacheable(value = "comic_detail", key = "#slug")
     public ComicResponse getComicBySlug(String slug) {
         Comic comic = comicRepository.findBySlug(slug)
                 .orElseThrow(() -> new ResourceNotFoundException("Comic not found with slug: " + slug));

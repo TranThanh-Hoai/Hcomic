@@ -9,7 +9,7 @@
 - `src/main/java/com/comic/h/analytics`: Nghiệp vụ thống kê dashboard admin, tăng trưởng người dùng 30 ngày và truyện thịnh hành.
 - `src/main/java/com/comic/h/comic`: Nghiệp vụ lõi quản lý truyện, thể loại, chương (chapter), xử lý upload nén ảnh WebP và lọc/tìm kiếm.
 - `src/main/java/com/comic/h/common`: Cấu hình dùng chung gồm Spring Security JWT, Redis cache, WebSocket STOMP, Global Exception Handler và lưu trữ file.
-- `src/main/java/com/comic/h/identity`: Xác thực người dùng (đăng ký, đăng nhập), phân quyền, xoay vòng Refresh Token và scheduler dọn token hết hạn.
+- `src/main/java/com/comic/h/identity`: Xác thực người dùng (đăng ký, đăng nhập mật khẩu & Google OAuth2), phân quyền, xoay vòng Refresh Token và scheduler dọn token hết hạn. Package `identity/security/oauth2` chứa toàn bộ luồng OAuth2 client (stateless cookie repository, user info factory, custom user service, success/failure handler).
 - `src/main/java/com/comic/h/interaction`: Tương tác bạn đọc gồm thích (like), đánh giá sao (rate), bình luận và phát sự kiện bình luận real-time qua WebSocket.
 - `src/main/java/com/comic/h/library`: Tủ sách cá nhân của user gồm lịch sử đọc, kệ truyện theo dõi và đánh dấu trang đọc dở.
 - `src/main/java/com/comic/h/moderation`: Báo cáo vi phạm nội dung (truyện, bình luận) và nghiệp vụ kiểm duyệt/khóa tài khoản của admin.
@@ -18,6 +18,7 @@
 ## 2. Entrypoint
 - Main: `HApplication.java` (`@EnableScheduling`)
 - REST: controller nằm trong package của từng tính năng, URL dạng `/api/<tính năng>/**` (admin: `/api/admin/**`). Lưu ý: `ComicController` cũng phục vụ đọc chương; `ChapterImageController` lo upload ảnh chương.
+- OAuth2: Khởi tạo `/oauth2/authorization/{provider}` (ví dụ: `/oauth2/authorization/google`), callback nhận mã code `/login/oauth2/code/{provider}`.
 - WebSocket: `common/config/WebSocketConfig.java` (endpoint `/ws`, nhận `/app/**`, phát `/topic/**`)
 - Scheduler: `identity/scheduler/RefreshTokenScheduler.java` (dọn refresh token hết hạn lúc 03:00 mỗi ngày)
 

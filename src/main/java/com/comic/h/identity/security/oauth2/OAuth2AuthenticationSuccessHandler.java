@@ -5,6 +5,7 @@ import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -13,6 +14,8 @@ import com.comic.h.common.exception.BadRequestException;
 import com.comic.h.common.security.JwtTokenProvider;
 import com.comic.h.identity.entity.RefreshToken;
 import com.comic.h.identity.entity.User;
+import com.comic.h.identity.enums.AuthProvider;
+import com.comic.h.identity.enums.Role;
 import com.comic.h.identity.repository.UserRepository;
 import com.comic.h.identity.service.RefreshTokenService;
 
@@ -58,9 +61,41 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
 
         String targetUrl = redirectUri.orElse(defaultRedirectUri);
 
-        UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
-        User user = userRepository.findByUsername(userPrincipal.getUsername())
-                .orElseThrow(() -> new BadRequestException("User not found: " + userPrincipal.getUsername()));
+        OAuth2User oAuth2User = (OAuth2User) authentication.getPrincipal();
+        User user;
+
+        if (oAuth2User instanceof UserPrincipal userPrincipal) {
+            user = userRepository.findByUsername(userPrincipal.getUsername())
+                    .orElseThrow(() -> new BadRequestException("User not found: " + userPrincipal.getUsername()));
+        } else {
+            // Fallback for DefaultOidcUser or DefaultOAuth2User
+            String email = oAuth2User.getAttribute("email");
+            if (email == null) {
+                throw new BadRequestException("Email not found from OAuth2 provider");
+            }
+            user = userRepository.findByEmail(email).orElseGet(() -> {
+                User newUser = new User();
+                newUser.setEmail(email);
+                newUser.setDisplayName(oAuth2User.getAttribute("name"));
+                newUser.setAvatar(oAuth2User.getAttribute("picture"));
+                newUser.setProvider(AuthProvider.GOOGLE);
+                newUser.setProviderId(oAuth2User.getAttribute("sub"));
+                newUser.setRole(Role.USER);
+                newUser.setIsBanned(false);
+
+                String baseUsername = email.split("@")[0].replaceAll("[^a-zA-Z0-9_]", "");
+                if (baseUsername.isEmpty()) {
+                    baseUsername = "user";
+                }
+                String username = baseUsername;
+                int suffix = 1;
+                while (userRepository.existsByUsername(username)) {
+                    username = baseUsername + suffix++;
+                }
+                newUser.setUsername(username);
+                return userRepository.save(newUser);
+            });
+        }
 
         String accessToken = jwtTokenProvider.generateTokenFromUsername(user.getUsername());
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(user);
